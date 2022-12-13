@@ -2,7 +2,7 @@
 
 In order to compile and insert your own custom LKM's, preliminary steps are required: please consult first and second chapters of the excellent [The Linux Kernel Module Programming Guide](https://sysprog21.github.io/lkmpg/#headers) by Peter Jay Salzman, Michael Burian, Ori Pomerantz, Bob Mottram, Jim Huang. 
 
-This project was compiled and tested on `Ubuntu 22.04.01 LTS` with `5.15.0-56-generic` kernel inside VM, with 2 cores and 8gb of RAM. Test generator requires `python 3.10`, no external dependecies. 
+This project was compiled and tested on `Ubuntu 22.04.01 LTS` with `5.15.0-56-generic` kernel inside VM, with 2 cores and 8gb of RAM. Test generator requires `python 3.10`, no dependecies. 
 
 ## Out of the box case
 
@@ -15,7 +15,42 @@ This project was compiled and tested on `Ubuntu 22.04.01 LTS` with `5.15.0-56-ge
 
 ## Generate new testing scenarios
 
-For automatic test scenario generation use `/tests/generate_test.py` 
+For automatic test scenario generation use `/tests/generate_test.py` as follows:
+
+
+``` 
+$ python3 /tests/generate_test.py [--name --nt --np --maxlen --minlen --deleted --seed]
+
+optional arguments:
+  --name    name of testing scenario and corresponding .c file in /src/client/
+  --np      number of pairs to be generated for each thread
+  --maxlen  max length of the key/value
+  --minlen  min length of the key/value
+  --deleted use deleted scenario
+  --seed    seed used for random key/values generation
+```
+
+Example command for generating big_test_deleted:
+
+
+`python3 generate_test.py --name big_test_deleted --np 10000 --maxlen 40 --minlen 10 --deleted 1 --seed 44`
+
+
+Example command for generating big_test:
+
+
+`python3 generate_test.py --name big_test --np 10000 --maxlen 40 --minlen 10 --deleted 0 --seed 43`
+
+
+Example command for generating small_test_deleted:
+
+
+`python3 generate_test.py --name small_test --np 10 --maxlen 20 --minlen 10 --deleted 1 --seed 42`
+
+Example command for generating small_test_deleted:
+
+
+`python3 generate_test.py --name small_test --np 10 --maxlen 20 --minlen 10 --deleted 0 --seed 41`
 
 
 ## Writing your own tests
@@ -76,9 +111,32 @@ IOCTL was chosen with single goal in mind - provide somewhat uniform API, withou
 
 # Testing
 
+All testing scenarios worked correctly (i.e. all asserts were correct);
+
 ## Memory leaks
 
-On the user-side API generated test functions was tested via [Valgrind](https://valgrind.org/); since tests have same structure with any size, here are results for `small_test.c` and `small_test_with_deletion.c`: 
+On the user-side API generated test functions was tested via [Valgrind](https://valgrind.org/); since tests have same structure with any size, here are results for `small_test.c` and `small_test_deleted.c`: 
+
+
+```
+==65680== HEAP SUMMARY:
+==65680==     in use at exit: 0 bytes in 0 blocks
+==65680==   total heap usage: 184 allocs, 184 frees, 10,488 bytes allocated
+==65680== 
+==65680== All heap blocks were freed -- no leaks are possible
+```
+
+```
+==69058== HEAP SUMMARY:
+==69058==     in use at exit: 0 bytes in 0 blocks
+==69058==   total heap usage: 364 allocs, 364 frees, 19,136 bytes allocated
+==69058== 
+==69058== All heap blocks were freed -- no leaks are possible
+```
 
 ## Performance
 
+This driver was in no way optimized for performance, but on my machine average resutls across 5 runs with `time` as follow:
+
+- Big test: ~0.7 seconds for 90k operations
+- Big test with deletion: ~8 seconds for 210k operations (including sleep)

@@ -340,6 +340,7 @@ def file_writer(
 def main():
     parser = argparse.ArgumentParser(description='Input test parameters')
     parser.add_argument('--name', type=str, default="test_small.c", help="Name of test")
+    parser.add_argument('--nt', type=int, default=20, help="Number of threads to use in test")
     parser.add_argument('--np', type=int, default=20, help="Number of pairs to use in test")
     parser.add_argument('--maxlen', type=int, default=20, help="Max lenght of key/value")
     parser.add_argument('--minlen', type=int, default=5, help="Min lenght of key/value")
