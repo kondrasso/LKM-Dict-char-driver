@@ -87,13 +87,14 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     message->key_type           = key_type;
 
     value_size = ioctl(fd, GET_VALUE_SIZE, message);
-    value_type = ioctl(fd, GET_VALUE_TYPE, message);
 
     if (value_size < 0) {
         printf("GET_VALUE: Could not get size of value\n");
         free(message);
         return NULL;
     }
+
+    value_type = ioctl(fd, GET_VALUE_TYPE, message);
 
     if (value_type < 0) {
         printf("GET_VALUE: Could not get type of value\n");

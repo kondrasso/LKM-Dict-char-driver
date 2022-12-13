@@ -28,7 +28,7 @@ struct pyld_dict
 
 static pyld_dict *pyld_create(void);
 static void pyld_dict_destroy(pyld_dict *);
-static void pyld_set(pyld_dict *, void *, void *, size_t, size_t, int, int);
+static int pyld_set(pyld_dict *, void *, void *, size_t, size_t, int, int);
 static void pyld_del(pyld_dict *, void *, size_t);
 static pyld_pair *pyld_get(pyld_dict *, const void *, size_t);
 static void pyld_dict_grow(pyld_dict *pd);
