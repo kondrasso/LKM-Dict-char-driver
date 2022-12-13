@@ -61,7 +61,7 @@ def gen_key_value_pairs(
             "value_declared_name": f"value_{name_prefix}_{i}",
         }
 
-    # correct len for null-terminated charachter for <Y_CHAR
+    # correct len for null-terminated charachter for MY_CHAR
     for value in key_value_pairs.values():
         if value["key_type"] == "MY_CHAR":
             value["key_len"] += 1
@@ -291,7 +291,7 @@ def gen_main(threads: list[str]) -> list [str]:
         "int fd;\n",
         "fd = open(DEVICE_PATH, O_RDWR);\n"
     ]
-
+    
     thread_decl_str = ''.join(f"{thread}, " for thread in threads)
     thread_decl_str = thread_decl_str[:-2]
 
@@ -338,16 +338,37 @@ def file_writer(
 
 
 def main():
+    parser = argparse.ArgumentParser(description='Input test parameters')
+    parser.add_argument('--name', type=str, default="test_small.c", help="Name of test")
+    parser.add_argument('--np', type=int, default=20, help="Number of pairs to use in test")
+    parser.add_argument('--maxlen', type=int, default=20, help="Max lenght of key/value")
+    parser.add_argument('--minlen', type=int, default=5, help="Min lenght of key/value")
+    parser.add_argument('--deleted', type=int, default=0, help="Use deleted scenario - 1, do not use - 0")
+    parser.add_argument('--seed', type=int, default=SEED, help="Seed to use for random generation")
+
+    args = parser.parse_args()
+    
+    if args.name.endswith(".c"):
+        cleared_name = args.name
+    else:
+        cleared_name = args.name + ".c"
+
+    if args.deleted == 0:
+        deleted = False
+    else:
+        deleted = True
+
+
     random.seed(SEED)
     thread_params = [
-        (10, 5, 40, 5, 40, "MY_CHAR", "MY_CHAR"),
-        (10, 5, 40, 5, 40, "MY_INT", "MY_CHAR"),
-        (10, 5, 40, 5, 40, "MY_INT", "MY_INT"),
+        (args.np, args.minlen, args.maxlen, args.minlen, args.maxlen, "MY_CHAR", "MY_CHAR"),
+        (args.np, args.minlen, args.maxlen, args.minlen, args.maxlen, "MY_INT", "MY_CHAR"),
+        (args.np, args.minlen, args.maxlen, args.minlen, args.maxlen, "MY_INT", "MY_INT"),
     ]
 
     thread_pairs = gen_thread_pairs(thread_params)
-    declarations, thread_asserts = gen_thread_asserts(thread_pairs)
-    file_writer(os.path.join(DEFAULT_TEST_LOCATION, "test.c"), thread_asserts, declarations)
+    declarations, thread_asserts = gen_thread_asserts(thread_pairs, deleted, args.np)
+    file_writer(os.path.join(DEFAULT_TEST_LOCATION, cleared_name), thread_asserts, declarations)
 
 
 

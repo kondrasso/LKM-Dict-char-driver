@@ -59,13 +59,12 @@ struct mutex pyld_mutex;
  *
  */
 
-/** @brief This function is called whenever device is being read from user space i.e. data is
- *  being sent from the device to the user. In this case is uses the copy_to_user() function to
- *  send the buffer string to the user and captures any errors.
- *  @param filep A pointer to a file object (defined in linux/fs.h)
- *  @param buffer The pointer to the buffer to which this function writes the data
- *  @param len The length of the b
- *  @param offset The offset if required
+/** @brief Core function to communicate with userspace; gets and processes requests from user
+ *  @param file file descriptor of the device
+ *  @param cmd Number of IOCTL command that dictates how to process arg
+ *  @param arg Contents of IOCTL request -  memory adress that points to message structure
+ *  @return 0 if any ot the commands worked correctly (except get, that returns struct or int), 
+ *  -EFAULT if there is memory faults, -EINVAL if provided from user values was inadequate 
  */
 static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {   
@@ -508,7 +507,8 @@ static void pyld_dict_destroy(pyld_dict *d)
 }
 
 
-/** @brief Search for pair with matching key in dict
+/** @brief Search for pair with matching key in dict; if exists - rewrite value
+ *  else - create new entry and link it to the head of the bucket
  *  @param pd  Pointer to a shared dictionary object
  *  @param key  Pointer to key location in memory
  *  @param value  Pointer to value location in memory
