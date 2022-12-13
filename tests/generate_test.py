@@ -1,10 +1,10 @@
 import random
 import string
-from pprint import pprint
+import argparse
 
 SEED = 42
 TYPE_UNPACK_DICT = {"MY_CHAR": "char", "MY_INT": "int"}
-FUNCTION_HEAD_PATH = "func_head.txt"
+FUNCTION_HEAD_PATH = "func_head.c"
 
 def generate_random_ascii_sting(min_len: int, max_len: int) -> tuple[str, int]:
     str_len = random.randint(min_len, max_len)
@@ -159,6 +159,14 @@ def generate_get_asserts(
                 f"assert(memcmp(recieve->value, {value_name}, recieve->value_size) == 0);\n"
             )
 
+            get_assert_list.append(
+                f"free(recieve->value);\n"
+            )
+
+            get_assert_list.append(
+                f"free(recieve);\n"
+            )
+
     return get_assert_list
 
 
@@ -196,7 +204,7 @@ def tid_helper(idx: int, threads: list):
 
 def construct_thread_asserts(
     thread_pairs_dict: dict[str : dict[str : dict[str : str | bool | int]]],
-    deletion: bool = True,
+    deletion: bool = False,
     num_of_entries: int = 10
 ) -> tuple[list[str], dict[str : list[str]]]:
 
@@ -330,27 +338,15 @@ def file_writer(
 def main():
     random.seed(SEED)
     thread_params = [
-        (10000, 5, 40, 5, 40, "MY_CHAR", "MY_CHAR"),
-        (10000, 5, 40, 5, 40, "MY_INT", "MY_CHAR"),
-        (10000, 5, 40, 5, 40, "MY_INT", "MY_INT"),
+        (10, 5, 40, 5, 40, "MY_CHAR", "MY_CHAR"),
+        (10, 5, 40, 5, 40, "MY_INT", "MY_CHAR"),
+        (10, 5, 40, 5, 40, "MY_INT", "MY_INT"),
     ]
 
     thread_pairs = generate_pairs_for_threads(thread_params)
     declarations, thread_asserts = construct_thread_asserts(thread_pairs)
     file_writer("text.txt", thread_asserts, declarations)
-    # test_tuple = ( 20, 10, 20, 10, 20, "MY_INT", "MY_CHAR")
-    # pair_dict = generate_key_value_pairs(1, *test_tuple)
-    # key_list = list(pair_dict.keys())
-    # key_list_verify_del = random.sample(key_list, 10)
-    # pprint(generate_declarations(key_list, pair_dict))
-    # pprint(generate_set_asserts(key_list, pair_dict))
 
-    # with open("text.txt", 'w+') as f:
-    #     f.writelines(generate_declarations(key_list, pair_dict))
-    #     f.writelines(generate_set_asserts(key_list, pair_dict))
-    #     f.writelines(generate_get_asserts(key_list, pair_dict))
-    #     f.writelines(generate_del_asserts(key_list_verify_del, pair_dict))
-    #     f.writelines(generate_get_asserts(key_list_verify_del, pair_dict, True))
 
 
 if __name__ == "__main__":

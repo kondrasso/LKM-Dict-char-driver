@@ -41,6 +41,6 @@ enum my_data_types {
     MY_CHAR = 2
 };
 
-extern int *del_pair();
-extern pyld_pair *set_pair();
-extern pyld_pair *get_value();
+int del_pair();
+int set_pair();
+pyld_pair *get_value();

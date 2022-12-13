@@ -12,21 +12,27 @@
 #include "dict_interface.h"
 
 
-pyld_pair *set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size_t value_size, int value_type) 
+int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size_t value_size, int value_type)
 {
     pyld_pair *message;
 
     if (key == NULL || value == NULL) {
         printf("SET_PAIR: NULL key and values not allowed\n");
-        return NULL;
+        return -1;
     }
 
     if (key_size == 0 || value_size == 0) {
         printf("SET_PAIR: illegal size\n");
+        return -1;
     }
 
     message = calloc(1, sizeof(pyld_pair));
-    
+
+    if (message == NULL) {
+        printf("SET_PAIR: message calloc failed\n");
+        return -1;
+    }
+
     message->key                = key;
     message->key_size           = key_size;
     message->key_type           = key_type;
@@ -37,14 +43,18 @@ pyld_pair *set_pair(int fd, void *key, size_t key_size, int key_type, void* valu
 
     if (ioctl(fd, SET_PAIR, message)) {
         printf("SET_PAIR: error setting pair\n");
-        return NULL;
+        free(message->value);
+        free(message);
+        return -1;
     }
-    
-    return message;
+    free(message->value);
+    free(message);
+
+    return 0;
 }
 
 
-pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type) 
+pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
 {
     int value_type;
     long value_size;
@@ -59,9 +69,14 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
         printf("GET_VALUE: illegal key size\n");
         return NULL;
     }
-   
+
     message = calloc(1, sizeof(pyld_pair));
-    
+
+    if (message == NULL) {
+        printf("GET_VALUE: message calloc failed\n");
+        return NULL;
+    }
+
     message->key                = key;
     message->key_size           = key_size;
     message->key_type           = key_type;
@@ -71,20 +86,31 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
 
     if (value_size < 0) {
         printf("GET_VALUE: Could not get size of value\n");
+        free(message);
         return NULL;
     }
 
     if (value_type < 0) {
         printf("GET_VALUE: Could not get type of value\n");
+        free(message);
         return NULL;
     }
 
     message->value_size         = (size_t)value_size;
     message->value              = malloc(message->value_size);
+
+    if (message->value == NULL) {
+        printf("GET_VALUE: value malloc failed\n");
+        free(message);
+        return NULL;
+    }
+
     message->value_type         = value_type;
 
     if (ioctl(fd, GET_VALUE, message)) {
         printf("GET_VALUE: no such key-value pair\n");
+        free(message->value);
+        free(message);
         return NULL;
     }
 
@@ -92,7 +118,7 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
 }
 
 
-int *del_pair(int fd, void *key, size_t key_size, int key_type)
+int del_pair(int fd, void *key, size_t key_size, int key_type)
 {
     pyld_pair *message;
     long value_size;
@@ -106,18 +132,24 @@ int *del_pair(int fd, void *key, size_t key_size, int key_type)
         printf("DEL_PAIR: illegal key size\n");
         return -1;
     }
-   
+
 
     message = calloc(1, sizeof(pyld_pair));
-    
+
+    if (message == NULL) {
+        printf("DEL_PAIR: calloc failed\n");
+        return -1;
+    }
+
     message->key                = key;
     message->key_size           = key_size;
     message->key_type           = key_type;
 
     if (ioctl(fd, DEL_PAIR, message)) {
         printf("DEL_PAIR: could not delete pair\n");
+        free(message);
         return -1;
     }
-
+    free(message);
     return 0;
 }

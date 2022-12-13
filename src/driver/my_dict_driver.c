@@ -85,6 +85,7 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
             pr_err("SET_PAIR: cannot get msg from user");
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -96,12 +97,18 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
         if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
             pr_err("SET_PAIR: cannot get key from user");
+            kfree(msg_dict->key);
+            kfree(msg_dict->value);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
 
         if (copy_from_user(msg_dict->value, value_adress, msg_dict->value_size)) {
             pr_err("SET_PAIR: cannot value key from user");
+            kfree(msg_dict->key);
+            kfree(msg_dict->value);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -116,6 +123,8 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             msg_dict->value_type
         );
 
+        kfree(msg_dict->key);
+        kfree(msg_dict->value);
         kfree(msg_dict);
         mutex_unlock(&pyld_mutex);
         return 0;
@@ -129,6 +138,7 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
             pr_err("GET_VALUE: cannot get from user");
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -139,6 +149,8 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
         if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
             pr_err("GET_VALUE: cannot get key");
+            kfree(msg_dict->key);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -147,16 +159,21 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
         if (ans == NULL) {
             pr_info("GET_VALUE: no such pair");
+            kfree(msg_dict->key);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EINVAL;
         }
 
         if (copy_to_user(value_adress, ans->value, ans->value_size)) {
             pr_err("GET_VALUE: cannot sent value to user");
+            kfree(msg_dict->key);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
 
+        kfree(msg_dict->key);
         kfree(msg_dict);
         mutex_unlock(&pyld_mutex);
         
@@ -166,10 +183,11 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     case GET_VALUE_SIZE:
         
-        pr_info("GET_VALUE_SIZE: start\n");
+        pr_debug("GET_VALUE_SIZE: start\n");
 
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
             pr_err("GET_VALUE_SIZE: cannot get msg from user");
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -179,6 +197,8 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
         if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
             pr_err("GET_VALUE_SIZE: cannot get key from user");
+            kfree(msg_dict->key);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -186,11 +206,14 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         ans = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
 
         if (ans == NULL) {
-            pr_info("GET_VALUE_SIZE: no such pair");
+            pr_err("GET_VALUE_SIZE: no such pair");
+            kfree(msg_dict->key);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EINVAL;
         }
         
+        kfree(msg_dict->key);
         kfree(msg_dict);
         mutex_unlock(&pyld_mutex);
         
@@ -200,10 +223,11 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     case GET_VALUE_TYPE:
         
-        pr_info("GET_VALUE_TYPE: start\n");
+        pr_debug("GET_VALUE_TYPE: start\n");
 
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
             pr_err("GET_VALUE_TYPE: cannot get msg from user");
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -213,6 +237,8 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
         if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
             pr_err("GET_VALUE_TYPE: cannot get key from user");
+            kfree(msg_dict->key);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -220,11 +246,14 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         ans = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
 
         if (ans == NULL) {
-            pr_info("GET_VALUE_TYPE: no such pair");
+            pr_err("GET_VALUE_TYPE: no such pair");
+            kfree(msg_dict->key);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EINVAL;
         }
         
+        kfree(msg_dict->key);
         kfree(msg_dict);
         mutex_unlock(&pyld_mutex);
         
@@ -237,7 +266,8 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         pr_info("DEL_PAIR : START");
 
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
-            pr_info("DEL_PAIR : cannot get msg from user");
+            pr_err("DEL_PAIR : cannot get msg from user");
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
@@ -246,12 +276,15 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
         
         if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
-            pr_info("DEL_PAIR : cannot get key from user");
+            pr_err("DEL_PAIR : cannot get key from user");
+            kfree(msg_dict->key);
+            kfree(msg_dict);
             mutex_unlock(&pyld_mutex);
             return -EFAULT;
         }
         
         pyld_del(pd_ptr, msg_dict->key, msg_dict->key_size);
+        kfree(msg_dict->key);
         kfree(msg_dict);
         mutex_unlock(&pyld_mutex);
         
@@ -261,6 +294,7 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     
     default:
         pr_err("Bad IOCTL command\n");
+        kfree(msg_dict);
         mutex_unlock(&pyld_mutex);
         return -EINVAL;
         break;
@@ -391,12 +425,8 @@ static void pyld_dict_destroy(pyld_dict *d)
         for (curr = d->dict_table[i]; curr != NULL; curr = next)
         {
             next = curr->next;
-            if (curr->key != NULL) {
-                kfree(curr->key);
-            }
-            if (curr->value != NULL) {
-                kfree(curr->value);
-            }
+            kfree(curr->key);
+            kfree(curr->value);
             kfree(curr);
         }
     }
@@ -424,6 +454,7 @@ static void pyld_set(
     int bucket_id;
     unsigned long hash;
     pyld_pair *curr;
+    pyld_pair *new_entry;
 
     hash = hash_mem(key, key_size);
     bucket_id = hash % pd->dict_size;
@@ -444,7 +475,7 @@ static void pyld_set(
         curr = curr->next;
     }
 
-    pyld_pair *new_entry = kzalloc(1 * sizeof(pyld_pair), GFP_KERNEL);
+    new_entry = kzalloc(1 * sizeof(pyld_pair), GFP_KERNEL);
 
     new_entry->key_hash         = hash;
     new_entry->key_type         = key_type;
@@ -459,18 +490,18 @@ static void pyld_set(
 
 
     new_entry->next = pd->dict_table[bucket_id];
-    if (new_entry->next == NULL) {
-        pr_info("Null is correct in next");
-    }
+    // if (new_entry->next == NULL) {
+    //     pr_info("Null is correct in next");
+    // }
     pd->dict_table[bucket_id] = new_entry;
 
-    if (new_entry->next == NULL) {
-        pr_info("Null is correct in next 2");
-    }
+    // if (new_entry->next == NULL) {
+    //     pr_info("Null is correct in next 2");
+    // }
 
-    if (pd->dict_table[bucket_id] != NULL) {
-        pr_info("Table state is correct");
-    }
+    // if (pd->dict_table[bucket_id] != NULL) {
+    //     pr_info("Table state is correct");
+    // }
 
     pd->num_entries++;
 
@@ -494,7 +525,7 @@ static pyld_pair *pyld_get(pyld_dict *pd, const void *key, size_t key_size)
 
     hash = hash_mem(key, key_size);
     bucket_id = hash % pd->dict_size;
-    pr_info("PLD_GET: bucket %d", bucket_id);
+    // pr_info("PLD_GET: bucket %d", bucket_id);
     curr = pd->dict_table[bucket_id];
 
     if (curr == NULL) {
@@ -568,10 +599,10 @@ static void pyld_del(pyld_dict *pd, void *key, size_t key_size)
     curr = pd->dict_table[bucket_id];
     head = pd->dict_table[bucket_id];
 
-    while (head) {
-        // pr_info("DELL_BUCKET: key %s with size %d", head->key, head->key_size);
-        head = head->next;
-    }
+    // while (head) {
+    //     // pr_info("DELL_BUCKET: key %s with size %d", head->key, head->key_size);
+    //     head = head->next;
+    // }
 
     // if (curr->key_hash == hash) {
     //     pr_info("DEL: HASH CORRECT FOR SINGLE CASE");
