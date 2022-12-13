@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
 #include <assert.h>
 #include <pthread.h>
@@ -37,6 +36,12 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
     message->key_size           = key_size;
     message->key_type           = key_type;
     message->value              = malloc(value_size);
+
+    if (message->value == NULL) {
+        printf("SET_PAIR: malloc failed\n");
+        return -1;
+    }
+    
     memcpy(message->value, value, value_size);
     message->value_size         = value_size;
     message->value_type         = value_type;

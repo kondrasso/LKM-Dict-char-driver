@@ -1,12 +1,15 @@
+import os
 import random
 import string
 import argparse
 
 SEED = 42
 TYPE_UNPACK_DICT = {"MY_CHAR": "char", "MY_INT": "int"}
-FUNCTION_HEAD_PATH = "func_head.c"
+BASE_DIR = os.path.dirname( __file__ )
+FUNCTION_HEAD_PATH = os.path.join(BASE_DIR, "func_head.c")
+DEFAULT_TEST_LOCATION = os.path.join(os.path.split(BASE_DIR)[0], "src", "client/")
 
-def generate_random_ascii_sting(min_len: int, max_len: int) -> tuple[str, int]:
+def gen_random_ascii_sting(min_len: int, max_len: int) -> tuple[str, int]:
     str_len = random.randint(min_len, max_len)
     random_str = '"' + "".join(
         random.choice(string.ascii_lowercase) for _ in range(str_len)
@@ -15,7 +18,7 @@ def generate_random_ascii_sting(min_len: int, max_len: int) -> tuple[str, int]:
     return random_str, str_len
 
 
-def generate_random_int_array(min_len: int, max_len: int) -> tuple[str, int]:
+def gen_random_int_array(min_len: int, max_len: int) -> tuple[str, int]:
     arr_len = random.randint(min_len, max_len)
     random_array = "{" + "".join(
         "{}, ".format(random.randint(1, 32000)) for _ in range(arr_len)
@@ -25,12 +28,12 @@ def generate_random_int_array(min_len: int, max_len: int) -> tuple[str, int]:
 
 
 GENERATOR_FUN_DICT = {
-    "MY_CHAR": generate_random_ascii_sting,
-    "MY_INT": generate_random_int_array,
+    "MY_CHAR": gen_random_ascii_sting,
+    "MY_INT": gen_random_int_array,
 }
 
 
-def generate_key_value_pairs(
+def gen_key_value_pairs(
     name_prefix: int,
     number_of_pairs: int,
     key_min_len: int,
@@ -39,7 +42,7 @@ def generate_key_value_pairs(
     value_max_len: int,
     key_type: str = "MY_CHAR",
     value_type: str = "MY_CHAR",
-) -> dict[str : dict[str : str | bool | int]]:
+) -> dict[str : dict[str : str | int]]:
 
     key_value_pairs = {}
 
@@ -47,6 +50,7 @@ def generate_key_value_pairs(
         key, key_len = GENERATOR_FUN_DICT[key_type](key_min_len, key_max_len)
         value, value_len = GENERATOR_FUN_DICT[value_type](value_min_len, value_max_len)
 
+        # use thread number as name prefix to get unique names for each thread
         key_value_pairs[key] = {
             "value": value,
             "key_len": key_len,
@@ -55,11 +59,9 @@ def generate_key_value_pairs(
             "value_type": value_type,
             "key_declared_name": f"key_{name_prefix}_{i}",
             "value_declared_name": f"value_{name_prefix}_{i}",
-            "is_set": False,
-            "is_deleted": False,
         }
 
-    # correct len for null-terminated charachter for CHAR
+    # correct len for null-terminated charachter for <Y_CHAR
     for value in key_value_pairs.values():
         if value["key_type"] == "MY_CHAR":
             value["key_len"] += 1
@@ -70,7 +72,7 @@ def generate_key_value_pairs(
 
 
 def unpack_for_key(
-    key: str, pair_dict: dict[str : dict[str : str | bool | int]]
+    key: str, pair_dict: dict[str : dict[str : str | int]]
 ) -> tuple[str]:
     key_name = pair_dict[key]["key_declared_name"]
     key_len = pair_dict[key]["key_len"]
@@ -82,9 +84,9 @@ def unpack_for_key(
     return key_name, key_len, value, value_name, value_len, key_type, value_type
 
 
-def generate_declarations(
+def gen_declarations(
     key_list: list[str],
-    pair_dict: dict[str : dict[str : str | bool | int]],
+    pair_dict: dict[str : dict[str : str | int]],
 ) -> list[str]:
 
     decl_list = []
@@ -112,8 +114,8 @@ def generate_declarations(
     return decl_list
 
 
-def generate_set_asserts(
-    key_list: list[str], pair_dict: dict[str : str | bool | int]
+def gen_set_asserts(
+    key_list: list[str], pair_dict: dict[str : str | int]
 ) -> list[str]:
 
     set_assert_list = []
@@ -125,14 +127,14 @@ def generate_set_asserts(
         )
 
         set_assert_list.append(
-            f"assert(set_pair(fd, {key_name}, sizeof({key_name}), {key_type}, {value_name}, sizeof({value_name}), {value_type}) != NULL);\n"
+            f"assert(set_pair(fd, {key_name}, sizeof({key_name}), {key_type}, {value_name}, sizeof({value_name}), {value_type}) == 0);\n"
         )
 
     return set_assert_list
 
 
-def generate_get_asserts(
-    key_list: list[str], pair_dict: dict[str : str | bool | int], deleted: bool = False
+def gen_get_assert(
+    key_list: list[str], pair_dict: dict[str : str | int], deleted: bool = False
 ) -> list[str]:
 
     get_assert_list = []
@@ -170,8 +172,8 @@ def generate_get_asserts(
     return get_assert_list
 
 
-def generate_del_asserts(
-    key_list: list[str], pair_dict: dict[str : str | bool | int]
+def gen_del_asserts(
+    key_list: list[str], pair_dict: dict[str : str | int]
 ) -> list[str]:
 
     del_assert_list = []
@@ -187,9 +189,9 @@ def generate_del_asserts(
     return del_assert_list
 
 
-def generate_pairs_for_threads(experiment_params: list[tuple[int | str]]):
+def gen_thread_pairs(experiment_params: list[tuple[int | str]]):
     return {
-        f"thread_{idx}": generate_key_value_pairs(idx, *param_set)
+        f"thread_{idx}": gen_key_value_pairs(idx, *param_set)
         for idx, param_set in enumerate(experiment_params)
     }
 
@@ -202,8 +204,8 @@ def tid_helper(idx: int, threads: list):
     return idx
 
 
-def construct_thread_asserts(
-    thread_pairs_dict: dict[str : dict[str : dict[str : str | bool | int]]],
+def gen_thread_asserts(
+    thread_pairs_dict: dict[str : dict[str : dict[str : str | int]]],
     deletion: bool = False,
     num_of_entries: int = 10
 ) -> tuple[list[str], dict[str : list[str]]]:
@@ -213,30 +215,29 @@ def construct_thread_asserts(
     threads = list(thread_pairs_dict.keys())
     sleep = max(1, num_of_entries // 10)
     
-    # order here - for single thread generate declarations, set them all to dict, get them, delete them, check if they are deleted
+    # order here - for single thread generate declarations, set them all, check if they are set via get, delete them, check if they are deleted
     for thread in threads:
         key_list = list(thread_pairs_dict[thread].keys())
         thread_asserts[thread] = []
-        declarations.extend(generate_declarations(key_list, thread_pairs_dict[thread]))
+        declarations.extend(gen_declarations(key_list, thread_pairs_dict[thread]))
         thread_asserts[thread].extend(
-            generate_set_asserts(key_list, thread_pairs_dict[thread])
+            gen_set_asserts(key_list, thread_pairs_dict[thread])
         )
         thread_asserts[thread].extend(
-            generate_get_asserts(key_list, thread_pairs_dict[thread])
+            gen_get_assert(key_list, thread_pairs_dict[thread])
         )
         thread_asserts[thread].extend(
-            generate_del_asserts(key_list, thread_pairs_dict[thread])
+            gen_del_asserts(key_list, thread_pairs_dict[thread])
         )
         thread_asserts[thread].extend(
-            generate_get_asserts(key_list, thread_pairs_dict[thread], deleted=True)
+            gen_get_assert(key_list, thread_pairs_dict[thread], deleted=True)
         )
         if deletion:
             thread_asserts[thread].extend(
-                generate_set_asserts(key_list, thread_pairs_dict[thread])
+                gen_set_asserts(key_list, thread_pairs_dict[thread])
             )
 
     if deletion:
-
         # there are some limitations in this kind of test for deletion due to single mutex lock, so add some sleep
         for thread in threads:
             thread_asserts[thread].append(f"sleep({sleep});\n")
@@ -246,7 +247,7 @@ def construct_thread_asserts(
             new_idx = tid_helper(idx, threads)
             key_list = list(thread_pairs_dict[threads[new_idx]].keys())
             thread_asserts[thread].extend(
-                generate_get_asserts(key_list, thread_pairs_dict[threads[new_idx]])
+                gen_get_assert(key_list, thread_pairs_dict[threads[new_idx]])
             )
         
         for thread in threads:
@@ -256,7 +257,7 @@ def construct_thread_asserts(
             new_idx = tid_helper(idx, threads)
             key_list = list(thread_pairs_dict[threads[new_idx]].keys())
             thread_asserts[thread].extend(
-                generate_del_asserts(key_list, thread_pairs_dict[threads[new_idx]])
+                gen_del_asserts(key_list, thread_pairs_dict[threads[new_idx]])
             )
 
         
@@ -267,7 +268,7 @@ def construct_thread_asserts(
         for thread in threads:
             key_list = list(thread_pairs_dict[thread].keys())
             thread_asserts[thread].extend(
-                generate_get_asserts(key_list, thread_pairs_dict[thread], deleted=True)
+                gen_get_assert(key_list, thread_pairs_dict[thread], deleted=True)
             )
 
     return declarations, thread_asserts
@@ -281,6 +282,7 @@ def gen_function_header(thread_name: str) -> list[str]:
         "pyld_pair *recieve;\n",
     ]
     return function_header
+
 
 def gen_main(threads: list[str]) -> list [str]:
     main_body = [
@@ -343,9 +345,9 @@ def main():
         (10, 5, 40, 5, 40, "MY_INT", "MY_INT"),
     ]
 
-    thread_pairs = generate_pairs_for_threads(thread_params)
-    declarations, thread_asserts = construct_thread_asserts(thread_pairs)
-    file_writer("text.txt", thread_asserts, declarations)
+    thread_pairs = gen_thread_pairs(thread_params)
+    declarations, thread_asserts = gen_thread_asserts(thread_pairs)
+    file_writer(os.path.join(DEFAULT_TEST_LOCATION, "test.c"), thread_asserts, declarations)
 
 
 

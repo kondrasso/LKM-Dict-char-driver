@@ -72,7 +72,7 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     void *key_adress;
     void *value_adress;
     pyld_pair *msg_dict;
-    pyld_pair *ans;
+    pyld_pair *found_pair;
 
     msg_dict = kzalloc(sizeof(pyld_pair), GFP_KERNEL);
 
@@ -81,7 +81,7 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     switch (cmd) {
     case SET_PAIR:
         
-        pr_info("SET_PAIR: start");
+        pr_debug("SET_PAIR: start");
 
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
             pr_err("SET_PAIR: cannot get msg from user");
@@ -132,9 +132,8 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     case GET_VALUE:
         
-        pr_info("GET_VALUE: start\n");
-        
-        pyld_pair *ans;
+        pr_debug("GET_VALUE: start");
+        pyld_pair *found_pair;
         
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
             pr_err("GET_VALUE: cannot get from user");
@@ -155,9 +154,9 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             return -EFAULT;
         }
 
-        ans = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+        found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
 
-        if (ans == NULL) {
+        if (found_pair == NULL) {
             pr_info("GET_VALUE: no such pair");
             kfree(msg_dict->key);
             kfree(msg_dict);
@@ -165,7 +164,7 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             return -EINVAL;
         }
 
-        if (copy_to_user(value_adress, ans->value, ans->value_size)) {
+        if (copy_to_user(value_adress, found_pair->value, found_pair->value_size)) {
             pr_err("GET_VALUE: cannot sent value to user");
             kfree(msg_dict->key);
             kfree(msg_dict);
@@ -203,9 +202,9 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             return -EFAULT;
         }
 
-        ans = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+        found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
 
-        if (ans == NULL) {
+        if (found_pair == NULL) {
             pr_err("GET_VALUE_SIZE: no such pair");
             kfree(msg_dict->key);
             kfree(msg_dict);
@@ -217,13 +216,13 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         kfree(msg_dict);
         mutex_unlock(&pyld_mutex);
         
-        return ans->value_size;
+        return found_pair->value_size;
         
         break;
 
     case GET_VALUE_TYPE:
         
-        pr_debug("GET_VALUE_TYPE: start\n");
+        pr_debug("GET_VALUE_TYPE: start");
 
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
             pr_err("GET_VALUE_TYPE: cannot get msg from user");
@@ -243,9 +242,9 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             return -EFAULT;
         }
 
-        ans = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+        found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
 
-        if (ans == NULL) {
+        if (found_pair == NULL) {
             pr_err("GET_VALUE_TYPE: no such pair");
             kfree(msg_dict->key);
             kfree(msg_dict);
@@ -257,13 +256,13 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         kfree(msg_dict);
         mutex_unlock(&pyld_mutex);
         
-        return ans->value_type;
+        return found_pair->value_type;
         
         break;
         
     case DEL_PAIR:
 
-        pr_info("DEL_PAIR : START");
+        pr_debug("DEL_PAIR : START");
 
         if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
             pr_err("DEL_PAIR : cannot get msg from user");
@@ -420,10 +419,8 @@ static void pyld_dict_destroy(pyld_dict *d)
     pyld_pair *curr;
     pyld_pair *next;
 
-    for (i = 0; i < d->dict_size; i++)
-    {
-        for (curr = d->dict_table[i]; curr != NULL; curr = next)
-        {
+    for (i = 0; i < d->dict_size; i++) {
+        for (curr = d->dict_table[i]; curr != NULL; curr = next) {
             next = curr->next;
             kfree(curr->key);
             kfree(curr->value);
@@ -490,19 +487,7 @@ static void pyld_set(
 
 
     new_entry->next = pd->dict_table[bucket_id];
-    // if (new_entry->next == NULL) {
-    //     pr_info("Null is correct in next");
-    // }
     pd->dict_table[bucket_id] = new_entry;
-
-    // if (new_entry->next == NULL) {
-    //     pr_info("Null is correct in next 2");
-    // }
-
-    // if (pd->dict_table[bucket_id] != NULL) {
-    //     pr_info("Table state is correct");
-    // }
-
     pd->num_entries++;
 
     if (pd->num_entries > pd->dict_size * DICT_GROW_DENSITY) {
@@ -525,7 +510,6 @@ static pyld_pair *pyld_get(pyld_dict *pd, const void *key, size_t key_size)
 
     hash = hash_mem(key, key_size);
     bucket_id = hash % pd->dict_size;
-    // pr_info("PLD_GET: bucket %d", bucket_id);
     curr = pd->dict_table[bucket_id];
 
     if (curr == NULL) {
@@ -559,6 +543,11 @@ static void pyld_dict_grow(pyld_dict *pd)
     new_size = pd->dict_size * DICTSIZE_MULTIPLIER;
     new_table = kzalloc(new_size * sizeof(*new_table), GFP_KERNEL);
 
+    if (new_table == NULL) {
+        pr_err("DICT_GROW: kzalloc failed");
+        return;
+    }
+
     for (i = 0; i < pd->dict_size; i++) {
         old_curr = pd->dict_table[i];
         while (old_curr) {
@@ -573,6 +562,7 @@ static void pyld_dict_grow(pyld_dict *pd)
     pd->dict_size = new_size;
     kfree(pd->dict_table);
     pd->dict_table = new_table;
+    return;
 }
 
 
@@ -594,32 +584,14 @@ static void pyld_del(pyld_dict *pd, void *key, size_t key_size)
     hash = hash_mem(key, key_size);
     bucket_id = hash % pd->dict_size;
 
-    // pr_info("DEL: BUCKET %d", bucket_id);
-
     curr = pd->dict_table[bucket_id];
     head = pd->dict_table[bucket_id];
-
-    // while (head) {
-    //     // pr_info("DELL_BUCKET: key %s with size %d", head->key, head->key_size);
-    //     head = head->next;
-    // }
-
-    // if (curr->key_hash == hash) {
-    //     pr_info("DEL: HASH CORRECT FOR SINGLE CASE");
-    // } else {
-    //     pr_info("DEL: HASH NOT CORRECT");
-    //     pr_info("HASH IN PAIR %lu, for key size %d", curr->key_hash, curr->key_size);
-    //     pr_info("HASH IN HERE %lu for key size %d", hash, key_size);
-    // }
 
     if (curr == NULL) {
         return;
     }
 
-    // pr_info("DEL: CURR IS NOT NULL");
-
     if (curr->key_hash == hash) {
-        // pr_info("DEL: CASE 2");
         pd->dict_table[bucket_id] = curr->next;
         kfree(curr->key);
         kfree(curr->value);
@@ -627,21 +599,15 @@ static void pyld_del(pyld_dict *pd, void *key, size_t key_size)
         goto deleted;
     }
 
-    // pr_info("DEL: CURR IS NOT ONLY THING IN THE BUCKET?");
-
     prev = curr;
     curr = curr->next;
 
     while(curr) {
-        // pr_info("DEL: CASE 3");
-        // pr_info("CURR key is %s", (char *)curr->key);
         if (curr->key_hash == hash) {
-            // pr_info("CURR key is %s", (char *)curr->key);
             prev->next = curr->next;
             kfree(curr->key);
             kfree(curr->value);
             kfree(curr);
-            // pr_info("DEL: FOUND");
             goto deleted;
         }
         prev = curr;
@@ -651,7 +617,6 @@ static void pyld_del(pyld_dict *pd, void *key, size_t key_size)
     return;
 
 deleted:
-    // head = pd->dict_table[bucket_id];
     if (pd->num_entries > 1) {
         pd->num_entries--; 
     }
