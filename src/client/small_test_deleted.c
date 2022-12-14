@@ -10,7 +10,16 @@
 #include <unistd.h>
 #include "dict_interface.h"
 
-
+/** @brief Send IOCTL request to copy from provided data structure and conduct set in driver
+ *  @param pd  Pointer to a shared dictionary object
+ *  @param key  Pointer to key location in memory
+ *  @param value  Pointer to value location in memory
+ *  @param key_size Size of key, follows sizeof() format with size_t
+ *  @param value_size Size of value, follows sizeof() format with size_t
+ *  @param key_type Number that charachterizes key for casting in userspace
+ *  @param value_type Number that charachterizes key for casting in userspace
+ *  @return 0 on success, -1 if IOCTL returned error or memory fault here
+ */
 int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size_t value_size, int value_type)
 {
     pyld_pair *message;
@@ -58,7 +67,14 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
     return 0;
 }
 
-
+/** @brief Sends get requests via IOCTL that will copy value to provided structure;
+ *  conducts IOCTL get_value_size and get_value type for memory allocation and tracking
+ *  properties
+ *  @param pd  Pointer to a shared dictionary object
+ *  @param key  Pointer to key location in memory
+ *  @param key_size  size of key, follows sizeof() format with size_t
+ *  @return Struct containing value for matching key; NULL if pair does not exist
+ */
 pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
 {
     int value_type;
@@ -123,7 +139,12 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     return message;
 }
 
-
+/** @brief Send deletion requests via IOCTL
+ *  @param pd Pointer to a shared dictionary object
+ *  @param key Pointer to key location in memory
+ *  @param key_size Size of key, follows sizeof() format with size_t
+ *  @return 0 if ioctl worked without error; else -1
+ */
 int del_pair(int fd, void *key, size_t key_size, int key_type)
 {
     pyld_pair *message;

@@ -1,4 +1,4 @@
-# Install and usage
+# Installation and usage
 
 In order to compile and insert your own custom LKM's, preliminary steps are required: please consult first and second chapters of the excellent [The Linux Kernel Module Programming Guide](https://sysprog21.github.io/lkmpg/#headers) by Peter Jay Salzman, Michael Burian, Ori Pomerantz, Bob Mottram, Jim Huang. 
 
@@ -11,7 +11,7 @@ This project was compiled and tested on `Ubuntu 22.04.01 LTS` with `5.15.0-56-ge
    - It's better to check what dmesg says via `sudo dmesg -w` 
 3. Compile any of scenarios in client, for example `cd /src/client/ && gcc small_test.c -o small_test`
 4. Run the test `sudo ./small_test`
-5. If asserts does not fail - it's all good, it's working!
+5. If no asserts fail - it's all good, it's working!
 
 ## Generate new testing scenarios
 
@@ -45,7 +45,7 @@ Example command for generating big_test:
 Example command for generating small_test_deleted:
 
 
-`python3 generate_test.py --name small_test --np 10 --maxlen 20 --minlen 10 --deleted 1 --seed 42`
+`python3 generate_test.py --name small_test_deleted --np 10 --maxlen 20 --minlen 10 --deleted 1 --seed 42`
 
 Example command for generating small_test_deleted:
 
@@ -53,18 +53,48 @@ Example command for generating small_test_deleted:
 `python3 generate_test.py --name small_test --np 10 --maxlen 20 --minlen 10 --deleted 0 --seed 41`
 
 
-## Writing your own tests
+## Using API
 
 Take `/tests/func_head.c` and `/src/client/dict_interface.h` - you have API to use with driver. 
+
+Example code for operations:
+
+```c
+int main() {
+  int fd;
+  pyld_pair *got;
+  int  my_key[4] = {0, 1, 2, 3};
+  char my_value[6] = "myval\0";
+
+  fd = open(DEVICE_PATH, O_RDWR);
+
+  /* set pair in dict */
+  set_pair(fd, my_key, sizeof(my_key), MY_INT, my_value, sizeof(my_value), MY_CHAR);
+  
+  /* get value from dict */
+  got = get_value(fd, my_key, sizeof(my_key), MY_INT);
+
+  /* interpret returned value with type */
+  if (got->value_type == MY_CHAR && got->value != NULL) {
+      printf("Got value %s\n", (char *)got->value);
+  }
+
+  /* delete pair */
+  del_pair(fd, my_key, sizeof(my_key), MY_INT);
+
+  return 0;
+}
+
+```
 
 
 # General description
 
 This repository contains "python-like dictionary" implemented as LKM character device driver. It's features:
 - Set, get (value, value_size, value_type) and delete methods are implemented
-- Generic container - stores key/value pairs of any type, if size provided
-- Support type storage - if multiple users use same type indicators (via enum from dict_header.h, for example), they can get value with type and interpret it correctly
-- Single interface - implemented as IOCTL, supports sending pre-defined structure that contains key, values, sizes, types
+- Generic container - stores key/value pairs of any type (except NULL), if size provided
+- Support type storage - if multiple users use same type indicators (via enum from `dict_interface.h`, for example), they can get values with type and interpret them correctly
+- Single interface - implemented as IOCTL, supports sending and recieving pre-defined structure that contains key, values, sizes, types
 - Consistent with multi-threaded usage (via mutex_lock)
   
 Current version does not support nested key-value pairs (thus "python-like", not "python"), but it could be implemented based on adding special type to data_types enum and implementing logic for handling it. 
@@ -87,7 +117,7 @@ There are five IOCTL calls that defined:
 
 ## Locking
 
-Locking implemented with single `mutex_lock`. It locks whole IOCTL function, so only one thread can have access to it, treating whole IOCTL function as critical section. This was made due to concern with hash table achitecture - when growth of the table occurs is hard to estimate, and it either should be separate method that checks after any set operation for more granular locking. Without table growth there are methods to use more granular strategies, like locking only one bucket []()
+Locking implemented with single `mutex_lock`. It locks whole IOCTL function, so only one thread can have access to it, treating whole IOCTL function as critical section. This was made due to concern with hash table achitecture - when growth of the table occurs is hard to estimate, and it either should be separate method that checks after any set operation for more granular locking. There are methods to use more granular strategies, like locking only one bucket [Resizable, Scalable, Concurrent Hash Tables via Relativistic Programming](https://www.usenix.org/legacy/event/atc11/tech/final_files/Triplett.pdf) via RCU.
 
 ## Testing framework
 
@@ -97,12 +127,17 @@ Testing framework is simple python script - it generates functions for threads a
 
 Test consits of static upper part `/tests/func_head.c` (with API functions implementations) and generated part: randomized key-value pairs (by type and lenght), for each thread; functions for each thread and main with multithreaded implementation via `pthread.h`. Each thread gets its own function with scenario, which consists of:
 
-- Assert set pairs worked without memory errors
-- Assert get value got correct value via memcmp
-- Assert del pair worked without memory errors
-- Assert get value did not get deleted values
+- Assert set_pairs worked without memory errors
+- Assert get_value got correct value via memcmp
+- Assert del_pair worked without memory errors
+- Assert get_value did not get deleted values
 
-Deleted scenario additionally sets values back and then tries to get and delete other threads values.
+Deleted scenario additionally:
+
+- Assert set_pairs worked without memory errors
+- Assert get_value got other's threads pairs correcltly
+- Assert del_pair worked on other's threads pairs without memory errors
+- Assert get_value of thread's own data returned no such pair result
 
 ## Motivation of IOCTL usage
 
@@ -134,9 +169,16 @@ On the user-side API generated test functions was tested via [Valgrind](https://
 ==69058== All heap blocks were freed -- no leaks are possible
 ```
 
+Besides that, valgrind highlits one type of error for all test cases: 
+
+```
+Conditional jump or move depends on uninitialised value(s)
+```
+I assume that caused by usage of assert inside multi-threaded scenario, but root cause is not clear.
+
 ## Performance
 
 This driver was in no way optimized for performance, but on my machine average resutls across 5 runs with `time` as follow:
 
 - Big test: ~0.7 seconds for 90k operations
-- Big test with deletion: ~8 seconds for 210k operations (including sleep)
+- Big test with deletion: ~8 seconds for 240k operations (including sleep)
