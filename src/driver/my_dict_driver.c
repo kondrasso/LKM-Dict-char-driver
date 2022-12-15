@@ -22,9 +22,9 @@
 
 /*  Dict concstants */
 
-#define INITIAL_DICTSIZE (64)
-#define DICTSIZE_MULTIPLIER (2)
-#define DICT_GROW_DENSITY (1)
+#define INITIAL_DICTSIZE 64
+#define DICTSIZE_MULTIPLIER 2
+#define DICT_GROW_DENSITY 1
 
 /* Character device strutc declaration and function prototypes */
 
@@ -38,11 +38,10 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 /* Callback registration, others should default to NULL */
 
-static struct file_operations fops =
-    {
+static struct file_operations fops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = pyld_ioctl,
-    };
+};
 
 
 /* Pointer for dict shared object for whole driver */
@@ -87,64 +86,62 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
      * Returns 0 if nothing failed, otherwise -EFAULT; 
      */
     case SET_PAIR:
-	pr_debug("SET_PAIR: start");
-	int set_result;
+		pr_debug("SET_PAIR: start");
+		int set_result;
 
-	if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
-	    pr_err("SET_PAIR: cannot get msg from user");
-	    goto set_efault;
-	}
+		if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
+			pr_err("SET_PAIR: cannot get msg from user");
+			goto set_efault;
+		}
 
-	key_adress = msg_dict->key;
-	value_adress = msg_dict->value;
-	msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
-	msg_dict->value = kmalloc(msg_dict->value_size, GFP_KERNEL);
+		key_adress = msg_dict->key;
+		value_adress = msg_dict->value;
+		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		msg_dict->value = kmalloc(msg_dict->value_size, GFP_KERNEL);
 
-	if (msg_dict->key == NULL || msg_dict->value == NULL) {
-	    pr_err("SET_PAIR: kmalloc failed");
-	    goto set_efault_full;
-	}
+		if (msg_dict->key == NULL || msg_dict->value == NULL) {
+			pr_err("SET_PAIR: kmalloc failed");
+			goto set_efault_full;
+		}
 
-	if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
-	    pr_err("SET_PAIR: cannot get key from user");
-	    goto set_efault_full;
-	}
+		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+			pr_err("SET_PAIR: cannot get key from user");
+			goto set_efault_full;
+		}
 
-	if (copy_from_user(msg_dict->value, value_adress, msg_dict->value_size)) {
-	    pr_err("SET_PAIR: cannot value key from user");
-	    goto set_efault_full;
-	}
+		if (copy_from_user(msg_dict->value, value_adress, msg_dict->value_size)) {
+			pr_err("SET_PAIR: cannot value key from user");
+			goto set_efault_full;
+		}
 
-	set_result = pyld_set(  pd_ptr, 
-				msg_dict->key, 
-				msg_dict->value, 
-				msg_dict->key_size, 
-				msg_dict->value_size, 
-				msg_dict->key_type, 
-				msg_dict->value_type
-			);
+		set_result = pyld_set(  pd_ptr, 
+					msg_dict->key, 
+					msg_dict->value, 
+					msg_dict->key_size, 
+					msg_dict->value_size, 
+					msg_dict->key_type, 
+					msg_dict->value_type
+				);
 
-	if (set_result != 0) {
-	    pr_err("SET_PAIR: error setting pair");
-	    goto set_efault_full;
-	}
+		if (set_result != 0) {
+			pr_err("SET_PAIR: error setting pair");
+			goto set_efault_full;
+		}
 
-	kfree(msg_dict->key);
-	kfree(msg_dict->value);
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return 0;
+		kfree(msg_dict->key);
+		kfree(msg_dict->value);
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return 0;
 
 set_efault_full:
-	kfree(msg_dict->key);
-	kfree(msg_dict->value);
+		kfree(msg_dict->key);
+		kfree(msg_dict->value);
 set_efault:
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return -EFAULT;
-	
-	break;
-    
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return -EFAULT;
+	    
     /* 
      * GET_VALUE ioctl call - get structure from user that contains key's
      * type and size, as well as value size and type (they can be obtained
@@ -155,57 +152,54 @@ set_efault:
      * and -EINVAL if pair does not exists; 
      */
     case GET_VALUE:
-	
-	pr_debug("GET_VALUE: start");
-	pyld_pair *found_pair;
-	
-	if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
-	    pr_err("GET_VALUE: cannot get from user");
-	    goto get_efault;
-	}
+		pr_debug("GET_VALUE: start");
+		pyld_pair *found_pair;
+		
+		if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
+			pr_err("GET_VALUE: cannot get from user");
+			goto get_efault;
+		}
 
-	key_adress = msg_dict->key;
-	value_adress = msg_dict->value;
-	msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		key_adress = msg_dict->key;
+		value_adress = msg_dict->value;
+		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
 
-	if (msg_dict->key == NULL) {
-	    pr_err("GET_VALUE: kmalloc failed");
-	    goto get_efault;
-	}
+		if (msg_dict->key == NULL) {
+			pr_err("GET_VALUE: kmalloc failed");
+			goto get_efault;
+		}
 
-	if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
-	    pr_err("GET_VALUE: cannot get key");
-	    goto get_efault_full;
-	}
+		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+			pr_err("GET_VALUE: cannot get key");
+			goto get_efault_full;
+		}
 
-	found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+		found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
 
-	if (found_pair == NULL) {
-	    pr_info("GET_VALUE: no such pair");
-	    kfree(msg_dict->key);
-	    kfree(msg_dict);
-	    mutex_unlock(&pyld_mutex);
-	    return -EINVAL;
-	}
+		if (found_pair == NULL) {
+			pr_info("GET_VALUE: no such pair");
+			kfree(msg_dict->key);
+			kfree(msg_dict);
+			mutex_unlock(&pyld_mutex);
+			return -EINVAL;
+		}
 
-	if (copy_to_user(value_adress, found_pair->value, found_pair->value_size)) {
-	    pr_err("GET_VALUE: cannot sent value to user");
-	    goto get_efault_full;
-	}
+		if (copy_to_user(value_adress, found_pair->value, found_pair->value_size)) {
+			pr_err("GET_VALUE: cannot sent value to user");
+			goto get_efault_full;
+		}
 
-	kfree(msg_dict->key);
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return 0;
+		kfree(msg_dict->key);
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return 0;
 
 get_efault_full:
-	kfree(msg_dict->key);
+		kfree(msg_dict->key);
 get_efault:
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return -EFAULT;
-	
-	break;
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return -EFAULT;
 
    /* GET_VALUE_SIZE ioctl call - get structure from user that contains key's
     * type and size, search for the pair and return size if exists; 
@@ -214,49 +208,47 @@ get_efault:
     * and -EINVAL if pair does not exists; 
     */
     case GET_VALUE_SIZE:
-	pr_debug("GET_VALUE_SIZE: start\n");
+		pr_debug("GET_VALUE_SIZE: start\n");
 
-	if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
-	    pr_err("GET_VALUE_SIZE: cannot get msg from user");
-	    goto get_size_efault;
-	}
+		if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
+			pr_err("GET_VALUE_SIZE: cannot get msg from user");
+			goto get_size_efault;
+		}
 
-	key_adress = msg_dict->key;
-	msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		key_adress = msg_dict->key;
+		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
 
-	if (msg_dict->key == NULL) {
-	    pr_err("GET_VALUE_SIZE: kmalloc failed");
-	    goto get_size_efault;
-	}
+		if (msg_dict->key == NULL) {
+			pr_err("GET_VALUE_SIZE: kmalloc failed");
+			goto get_size_efault;
+		}
 
-	if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
-	    pr_err("GET_VALUE_SIZE: cannot get key from user");
-	    goto get_size_efault_full;
-	}
+		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+			pr_err("GET_VALUE_SIZE: cannot get key from user");
+			goto get_size_efault_full;
+		}
 
-	found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+		found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
 
-	if (found_pair == NULL) {
-	    pr_err("GET_VALUE_SIZE: no such pair");
-	    kfree(msg_dict->key);
-	    kfree(msg_dict);
-	    mutex_unlock(&pyld_mutex);
-	    return -EINVAL;
-	}
-	
-	kfree(msg_dict->key);
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return found_pair->value_size;
+		if (found_pair == NULL) {
+			pr_err("GET_VALUE_SIZE: no such pair");
+			kfree(msg_dict->key);
+			kfree(msg_dict);
+			mutex_unlock(&pyld_mutex);
+			return -EINVAL;
+		}
+		
+		kfree(msg_dict->key);
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return found_pair->value_size;
 
 get_size_efault_full:
-	kfree(msg_dict->key);
+		kfree(msg_dict->key);
 get_size_efault:
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return -EFAULT;
-
-	break;
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return -EFAULT;
 
    /* 
     * GET_VALUE_TYPE ioctl call - get structure from user that contains key's
@@ -267,49 +259,47 @@ get_size_efault:
     */
     case GET_VALUE_TYPE:
 	
-	pr_debug("GET_VALUE_TYPE: start");
+		pr_debug("GET_VALUE_TYPE: start");
 
-	if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
-	    pr_err("GET_VALUE_TYPE: cannot get msg from user");
-	    goto get_type_efault;
-	}
+		if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
+			pr_err("GET_VALUE_TYPE: cannot get msg from user");
+			goto get_type_efault;
+		}
 
-	key_adress = msg_dict->key;
-	msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		key_adress = msg_dict->key;
+		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
 
-	if (msg_dict->key == NULL) {
-	    pr_err("GET_VALUE_TYPE: kmalloc failed");
-	    goto get_type_efault;
-	}
+		if (msg_dict->key == NULL) {
+			pr_err("GET_VALUE_TYPE: kmalloc failed");
+			goto get_type_efault;
+		}
 
-	if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
-	    pr_err("GET_VALUE_TYPE: cannot get key from user");
-	    goto get_type_efault_full;
-	}
+		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+			pr_err("GET_VALUE_TYPE: cannot get key from user");
+			goto get_type_efault_full;
+		}
 
-	found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+		found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
 
-	if (found_pair == NULL) {
-	    pr_err("GET_VALUE_TYPE: no such pair");
-	    kfree(msg_dict->key);
-	    kfree(msg_dict);
-	    mutex_unlock(&pyld_mutex);
-	    return -EINVAL;
-	}
-	
-	kfree(msg_dict->key);
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return found_pair->value_type;
+		if (found_pair == NULL) {
+			pr_err("GET_VALUE_TYPE: no such pair");
+			kfree(msg_dict->key);
+			kfree(msg_dict);
+			mutex_unlock(&pyld_mutex);
+			return -EINVAL;
+		}
+		
+		kfree(msg_dict->key);
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return found_pair->value_type;
 
 get_type_efault_full:
-	kfree(msg_dict->key);
+		kfree(msg_dict->key);
 get_type_efault:
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return -EFAULT;
-	
-	break;
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return -EFAULT;
 
    /* 
     * DEL_PAIR ioctl call - get structure from user that contains key's
@@ -320,48 +310,46 @@ get_type_efault:
     */  
     case DEL_PAIR:
 
-	pr_debug("DEL_PAIR : START");
+		pr_debug("DEL_PAIR : START");
 
-	if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
-	    pr_err("DEL_PAIR : cannot get msg from user");
-	    goto del_pair_efault;
-	}
+		if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
+			pr_err("DEL_PAIR : cannot get msg from user");
+			goto del_pair_efault;
+		}
 
-	key_adress = msg_dict->key;
-	msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		key_adress = msg_dict->key;
+		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
 
-	if (msg_dict->key == NULL) {
-	    pr_err("DEL_PAIR: kmalloc failed");
-	    goto del_pair_efault;
-	}
-	
-	if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
-	    pr_err("DEL_PAIR : cannot get key from user");
-	    goto del_pair_efault_full;
-	}
-	
-	pyld_del(pd_ptr, msg_dict->key, msg_dict->key_size);
-	kfree(msg_dict->key);
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);   
-	return 0;
+		if (msg_dict->key == NULL) {
+			pr_err("DEL_PAIR: kmalloc failed");
+			goto del_pair_efault;
+		}
+		
+		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+			pr_err("DEL_PAIR : cannot get key from user");
+			goto del_pair_efault_full;
+		}
+		
+		pyld_del(pd_ptr, msg_dict->key, msg_dict->key_size);
+		kfree(msg_dict->key);
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);   
+		return 0;
 
 del_pair_efault_full:
-	kfree(msg_dict->key);
+		kfree(msg_dict->key);
 del_pair_efault:
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
-	return -EFAULT;
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
+		return -EFAULT;
 	
-	break;
-    
     default:
-	pr_err("Bad IOCTL command\n");
-	kfree(msg_dict);
-	mutex_unlock(&pyld_mutex);
+		pr_err("Bad IOCTL command\n");
+		kfree(msg_dict);
+		mutex_unlock(&pyld_mutex);
 	return -EINVAL;
-	break;
     }
+
     return 0;
 }
 
@@ -374,8 +362,8 @@ static int __init pyld_driver_init(void)
 {
 
     if ((alloc_chrdev_region(&dev, 0, 1, "pyld_Dev")) < 0) {
-	pr_err("PYLD_INIT: cannot allocate major number\n");
-	return -1;
+		pr_err("PYLD_INIT: cannot allocate major number\n");
+		return -1;
     }
 
     /* Dynamic major and minor number allocation */
@@ -386,22 +374,22 @@ static int __init pyld_driver_init(void)
     /* Adding device as character device */
 
     if ((cdev_add(&pyld_cdev, dev, 1)) < 0) {
-	pr_err("PYLD_INIT: cannot add the device to the system\n");
-	goto r_class;
+		pr_err("PYLD_INIT: cannot add the device to the system\n");
+		goto r_class;
     }
 
     /* Creating device class */
     
     if (IS_ERR(dev_class = class_create(THIS_MODULE, "pyld_class"))) {
-	pr_err("PYLD_INIT: cannot create the struct class\n");
-	goto r_class;
+		pr_err("PYLD_INIT: cannot create the struct class\n");
+		goto r_class;
     }
 
     /* Creating device */
 
     if (IS_ERR(device_create(dev_class, NULL, dev, NULL, "pyld_device"))) {
-	pr_err("PYLD_INIT: cannot create the device\n");
-	goto r_device;
+		pr_err("PYLD_INIT: cannot create the device\n");
+		goto r_device;
     }
     
     pr_info("PYLD_INIT: device driver inserted\n");
@@ -411,8 +399,8 @@ static int __init pyld_driver_init(void)
     pd_ptr = pyld_create();
 
     if (pd_ptr == NULL) {
-	pr_err("PYLD_INIT: dict was not initialized\n");
-	goto r_device;
+		pr_err("PYLD_INIT: dict was not initialized\n");
+		goto r_device;
     }
 
     /* Initilize mutex at runtime */
@@ -462,21 +450,16 @@ static pyld_dict *pyld_create()
     pyld_dict *pd = kmalloc(sizeof(pyld_dict), GFP_KERNEL);
     
     if (!pd) {
-	return NULL;
+		return NULL;
     }
 
     pd->dict_size   = INITIAL_DICTSIZE;
     pd->num_entries = 0;
     pd->dict_table  = kzalloc(INITIAL_DICTSIZE * sizeof(pyld_pair), GFP_KERNEL);
  
-    // just to be sure
-    for (i = 0; i < pd->dict_size; i++) {
-	pd->dict_table[i] = NULL;
-    }
-    
     if (!pd->dict_table) {
-	kfree(pd);
-	return NULL;
+		kfree(pd);
+		return NULL;
     }
 
     return pd;
@@ -494,12 +477,12 @@ static void pyld_dict_destroy(pyld_dict *d)
     pyld_pair *next;
 
     for (i = 0; i < d->dict_size; i++) {
-	for (curr = d->dict_table[i]; curr != NULL; curr = next) {
-	    next = curr->next;
-	    kfree(curr->key);
-	    kfree(curr->value);
-	    kfree(curr);
-	}
+		for (curr = d->dict_table[i]; curr != NULL; curr = next) {
+			next = curr->next;
+			kfree(curr->key);
+			kfree(curr->value);
+			kfree(curr);
+		}
     }
 
     kfree(d->dict_table);
@@ -537,24 +520,22 @@ static int pyld_set(
 
     curr = pd->dict_table[bucket_id];
 
-    while (curr != NULL)
-    {   
-	if (curr->key_hash == hash)
-	{
-	    kfree(curr->value);
-	    curr->value = kzalloc(value_size, GFP_KERNEL);
-	    memcpy(curr->value, value, value_size);
-	    curr->value_size = value_size;
-	    curr->value_type = value_type;
-	    return 0;
-	}
-	curr = curr->next;
+    while (curr != NULL) {   
+		if (curr->key_hash == hash) {
+			kfree(curr->value);
+			curr->value = kzalloc(value_size, GFP_KERNEL);
+			memcpy(curr->value, value, value_size);
+			curr->value_size = value_size;
+			curr->value_type = value_type;
+			return 0;
+		}
+		curr = curr->next;
     }
 
     new_entry = kzalloc(1 * sizeof(pyld_pair), GFP_KERNEL);
 
     if (new_entry == NULL) {
-	return -EFAULT;
+		return -EFAULT;
     }
 
     new_entry->key_hash         = hash;
@@ -565,28 +546,27 @@ static int pyld_set(
     new_entry->key              = kzalloc(1 * key_size, GFP_KERNEL);
     
     if (new_entry-> key == NULL) {
-	kfree(new_entry);
-	return -EFAULT;
+		kfree(new_entry);
+		return -EFAULT;
     }
 
     new_entry->value            = kzalloc(1 * value_size, GFP_KERNEL);
     
     if (new_entry->value == NULL) {
-	kfree(new_entry->key);
-	kfree(new_entry);
-	return -EFAULT;
+		kfree(new_entry->key);
+		kfree(new_entry);
+		return -EFAULT;
     }
     
     memcpy(new_entry->key, key, key_size);
     memcpy(new_entry->value, value, value_size);
-
 
     new_entry->next = pd->dict_table[bucket_id];
     pd->dict_table[bucket_id] = new_entry;
     pd->num_entries++;
 
     if (pd->num_entries > pd->dict_size * DICT_GROW_DENSITY) {
-	pyld_dict_grow(pd);
+		pyld_dict_grow(pd);
     }
 
     return 0;
@@ -610,15 +590,15 @@ static pyld_pair *pyld_get(pyld_dict *pd, const void *key, size_t key_size)
     curr = pd->dict_table[bucket_id];
 
     if (curr == NULL) {
-	pr_info("PLD_GET: no such pair");
-	return NULL;
+		pr_info("PLD_GET: no such pair");
+		return NULL;
     }
 
     while (curr) {
-	if (curr->key_hash == hash) {
-	    return curr;
-	}
-	curr = curr->next;
+		if (curr->key_hash == hash) {
+			return curr;
+		}
+		curr = curr->next;
     }
     return NULL;
 }
@@ -641,19 +621,19 @@ static void pyld_dict_grow(pyld_dict *pd)
     new_table = kzalloc(new_size * sizeof(*new_table), GFP_KERNEL);
 
     if (new_table == NULL) {
-	pr_err("DICT_GROW: kzalloc failed");
-	return;
+		pr_err("DICT_GROW: kzalloc failed");
+		return;
     }
 
     for (i = 0; i < pd->dict_size; i++) {
-	old_curr = pd->dict_table[i];
-	while (old_curr) {
-	    new_index = old_curr->key_hash % new_size;
-	    new_curr = old_curr;
-	    old_curr = old_curr->next;
-	    new_curr->next = new_table[new_index];
-	    new_table[new_index] = new_curr;
-	}
+		old_curr = pd->dict_table[i];
+		while (old_curr) {
+			new_index = old_curr->key_hash % new_size;
+			new_curr = old_curr;
+			old_curr = old_curr->next;
+			new_curr->next = new_table[new_index];
+			new_table[new_index] = new_curr;
+		}
     }
 
     pd->dict_size = new_size;
@@ -685,24 +665,24 @@ static void pyld_del(pyld_dict *pd, void *key, size_t key_size)
     head = pd->dict_table[bucket_id];
 
     if (curr == NULL) {
-	return;
+		return;
     }
 
     if (curr->key_hash == hash) {
-	pd->dict_table[bucket_id] = curr->next;
-	goto deleted;
+		pd->dict_table[bucket_id] = curr->next;
+		goto deleted;
     }
 
     prev = curr;
     curr = curr->next;
 
     while(curr) {
-	if (curr->key_hash == hash) {
-	    prev->next = curr->next;
-	    goto deleted;
-	}
-	prev = curr;
-	curr = curr->next;
+		if (curr->key_hash == hash) {
+			prev->next = curr->next;
+			goto deleted;
+		}
+		prev = curr;
+		curr = curr->next;
     }
 
     return;
@@ -712,7 +692,7 @@ deleted:
     kfree(curr->value);
     kfree(curr);
     if (pd->num_entries > 1) {
-	pd->num_entries--; 
+		pd->num_entries--; 
     }
     return; 
 }
@@ -728,7 +708,7 @@ static unsigned long hash_mem(const unsigned char *s, size_t len)
 
     h = 0;
     for (i = 0; i < len; i++) {
-	h = (h << 13) + (h >> 7) + h + s[i];
+		h = (h << 13) + (h >> 7) + h + s[i];
     }
     return h;
 }
