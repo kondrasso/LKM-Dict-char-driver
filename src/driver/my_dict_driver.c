@@ -20,7 +20,7 @@
 #define GET_VALUE_SIZE _IOR('b', 'c', pyld_pair *)
 #define GET_VALUE_TYPE _IOR('c', 'c', pyld_pair *)
 
-/*  Dict concstants */
+/*  Dict constants */
 
 #define INITIAL_DICTSIZE 64
 #define DICTSIZE_MULTIPLIER 2
@@ -68,8 +68,8 @@ struct mutex pyld_mutex;
 static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {   
 	long retval;
-    void *key_adress;
-    void *value_adress;
+    void *key;
+    void *value;
     pyld_pair *msg_dict;
     pyld_pair *found_pair;
 
@@ -87,8 +87,8 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
      * Returns 0 if nothing failed, otherwise -EFAULT; 
      */
     case SET_PAIR:
+
 		pr_debug("SET_PAIR: start");
-		int set_result;
 
 		if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
 			pr_err("SET_PAIR: cannot get msg from user");
@@ -108,44 +108,38 @@ static long pyld_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			goto set_exit;
 		}
 
-		key_adress = msg_dict->key;
-		value_adress = msg_dict->value;
-		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
-		msg_dict->value = kmalloc(msg_dict->value_size, GFP_KERNEL);
+		key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		value = kmalloc(msg_dict->value_size, GFP_KERNEL);
 
-		if (msg_dict->key == NULL || msg_dict->value == NULL) {
+		if (key == NULL || value == NULL) {
 			pr_err("SET_PAIR: kmalloc failed");
 			retval = -ENOMEM;
 			goto set_exit;
 		}
 
-		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("SET_PAIR: cannot get key from user");
 			retval = -EFAULT;
 			goto set_exit_full;
 		}
 
-		if (copy_from_user(msg_dict->value, value_adress, msg_dict->value_size)) {
+		if (copy_from_user(value, msg_dict->value, msg_dict->value_size)) {
 			pr_err("SET_PAIR: cannot value key from user");
 			retval = -EFAULT;
 			goto set_exit_full;
 		}
 
-		set_result = pyld_set(pd_ptr, msg_dict->key, msg_dict->value, 
+		retval = pyld_set(pd_ptr, key, value, 
 							  msg_dict->key_size, msg_dict->value_size,
 							  msg_dict->key_type, msg_dict->value_type);
 
-		if (!set_result) {
+		if (!retval) {
 			pr_err("SET_PAIR: error setting pair");
-			retval = set_result;
-			goto set_exit_full;
 		}
 
-		retval = 0;
-
 set_exit_full:
-		kfree(msg_dict->key);
-		kfree(msg_dict->value);
+		kfree(key);
+		kfree(value);
 set_exit:
 		kfree(msg_dict);
 		mutex_unlock(&pyld_mutex);
@@ -161,8 +155,8 @@ set_exit:
      * and -EINVAL if pair does not exists; 
      */
     case GET_VALUE:
+
 		pr_debug("GET_VALUE: start");
-		pyld_pair *found_pair;
 		
 		if (copy_from_user(msg_dict, (pyld_pair *)arg, sizeof(pyld_pair))) {
 			pr_err("GET_VALUE: cannot get from user");
@@ -176,23 +170,21 @@ set_exit:
 			goto get_exit;
 		}
 
-		key_adress = msg_dict->key;
-		value_adress = msg_dict->value;
-		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		key = kmalloc(msg_dict->key_size, GFP_KERNEL);
 
-		if (msg_dict->key == NULL) {
+		if (key == NULL) {
 			pr_err("GET_VALUE: kmalloc failed");
 			retval = -ENOMEM;
 			goto get_exit;
 		}
 
-		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("GET_VALUE: cannot get key");
 			retval = -EFAULT;
 			goto get_exit_full;
 		}
 
-		found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+		found_pair = pyld_get(pd_ptr, key, msg_dict->key_size);
 
 		if (found_pair == NULL) {
 			pr_info("GET_VALUE: no such pair");
@@ -200,7 +192,7 @@ set_exit:
 			goto get_exit_full;
 		}
 
-		if (copy_to_user(value_adress, found_pair->value, found_pair->value_size)) {
+		if (copy_to_user(msg_dict->value, found_pair->value, found_pair->value_size)) {
 			pr_err("GET_VALUE: cannot sent value to user");
 			retval = -EFAULT;
 			goto get_exit_full;
@@ -209,7 +201,7 @@ set_exit:
 		retval = 0;
 
 get_exit_full:
-		kfree(msg_dict->key);
+		kfree(key);
 get_exit:
 		kfree(msg_dict);
 		mutex_unlock(&pyld_mutex);
@@ -236,22 +228,21 @@ get_exit:
 			goto get_size_exit;
 		}
 
-		key_adress = msg_dict->key;
-		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		key = kmalloc(msg_dict->key_size, GFP_KERNEL);
 
-		if (msg_dict->key == NULL) {
+		if (key == NULL) {
 			pr_err("GET_VALUE_SIZE: kmalloc failed");
 			retval = -ENOMEM;
 			goto get_size_exit;
 		}
 
-		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("GET_VALUE_SIZE: cannot get key from user");
 			retval = -EFAULT;
 			goto get_size_exit_full;
 		}
 
-		found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+		found_pair = pyld_get(pd_ptr, key, msg_dict->key_size);
 
 		if (found_pair == NULL) {
 			pr_err("GET_VALUE_SIZE: no such pair");
@@ -262,7 +253,7 @@ get_exit:
 		retval = found_pair->value_size;
 
 get_size_exit_full:
-		kfree(msg_dict->key);
+		kfree(key);
 get_size_exit:
 		kfree(msg_dict);
 		mutex_unlock(&pyld_mutex);
@@ -291,22 +282,21 @@ get_size_exit:
 			goto get_type_exit;
 		}
 
-		key_adress = msg_dict->key;
-		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		key = kmalloc(msg_dict->key_size, GFP_KERNEL);
 
-		if (msg_dict->key == NULL) {
+		if (key == NULL) {
 			pr_err("GET_VALUE_TYPE: kmalloc failed");
 			retval = -ENOMEM;
 			goto get_type_exit;
 		}
 
-		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("GET_VALUE_TYPE: cannot get key from user");
 			retval = -EFAULT;
 			goto get_type_exit_full;
 		}
 
-		found_pair = pyld_get(pd_ptr, msg_dict->key, msg_dict->key_size);
+		found_pair = pyld_get(pd_ptr, key, msg_dict->key_size);
 
 		if (found_pair == NULL) {
 			pr_err("GET_VALUE_TYPE: no such pair");
@@ -317,7 +307,7 @@ get_size_exit:
 		retval = found_pair->value_type;
 
 get_type_exit_full:
-		kfree(msg_dict->key);
+		kfree(key);
 get_type_exit:
 		kfree(msg_dict);
 		mutex_unlock(&pyld_mutex);
@@ -346,27 +336,26 @@ get_type_exit:
 			goto del_pair_exit;
 		}
 
-		key_adress = msg_dict->key;
-		msg_dict->key = kmalloc(msg_dict->key_size, GFP_KERNEL);
+		key = kmalloc(msg_dict->key_size, GFP_KERNEL);
 
-		if (msg_dict->key == NULL) {
+		if (key == NULL) {
 			pr_err("GET_VALUE_TYPE: kmalloc failed");
 			retval = -ENOMEM;
 			goto del_pair_exit;
 		}
 		
-		if (copy_from_user(msg_dict->key, key_adress, msg_dict->key_size)) {
+		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("DEL_PAIR : cannot get key from user");
 			retval = -EFAULT;
 			goto del_pair_exit_full;
 		}
 		
-		pyld_del(pd_ptr, msg_dict->key, msg_dict->key_size);
+		pyld_del(pd_ptr, key, msg_dict->key_size);
 
 		retval = 0;
 
 del_pair_exit_full:
-		kfree(msg_dict->key);
+		kfree(key);
 del_pair_exit:
 		kfree(msg_dict);
 		mutex_unlock(&pyld_mutex);
