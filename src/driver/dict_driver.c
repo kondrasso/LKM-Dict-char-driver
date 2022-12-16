@@ -79,25 +79,25 @@ struct mutex dict_mutex;
 static long dict_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
 	long retval;
-    void *key;
-    void *value;
-    dict_pair *msg_dict;
-    dict_pair *found_pair;
+	void *key;
+	void *value;
+	dict_pair *msg_dict;
+	dict_pair *found_pair;
 
-    msg_dict = kzalloc(sizeof(dict_pair), GFP_KERNEL);
+	msg_dict = kzalloc(sizeof(dict_pair), GFP_KERNEL);
 
-    mutex_lock(&dict_mutex);
+	mutex_lock(&dict_mutex);
 
-    switch (cmd) {
-    /*
-     * SET_PAIR ioctl call - get structure from user that contains types and
-     * sizes as values, and pointers to key and value in userspcae; try
-     * copy from user, then set values to dict via dict_set; types and sizes
-     * should be sanitized in userspace part of IOCTL;
-     *
-     * Returns 0 if nothing failed, otherwise -EFAULT;
-     */
-    case SET_PAIR:
+	switch (cmd) {
+	/*
+	 * SET_PAIR ioctl call - get structure from user that contains types and
+	 * sizes as values, and pointers to key and value in userspcae; try
+	 * copy from user, then set values to dict via dict_set; types and sizes
+	 * should be sanitized in userspace part of IOCTL;
+	 *
+	 * Returns 0 if nothing failed, otherwise -EFAULT;
+	 */
+	case SET_PAIR:
 
 		pr_debug("SET_PAIR: start");
 
@@ -150,16 +150,16 @@ set_exit:
 		mutex_unlock(&dict_mutex);
 		return retval;
 
-    /*
-     * GET_VALUE ioctl call - get structure from user that contains key's
-     * type and size, as well as value size and type (they can be obtained
-     * via two following IOCTL's); search for pair and copy it to user if
-     * exists;
-     *
-     * Returns 0 if nothing failed, otherwise -EFAULT if memory errors
-     * and -EINVAL if pair does not exists;
-     */
-    case GET_VALUE:
+	/*
+	 * GET_VALUE ioctl call - get structure from user that contains key's
+	 * type and size, as well as value size and type (they can be obtained
+	 * via two following IOCTL's); search for pair and copy it to user if
+	 * exists;
+	 *
+	 * Returns 0 if nothing failed, otherwise -EFAULT if memory errors
+	 * and -EINVAL if pair does not exists;
+	 */
+	case GET_VALUE:
 
 		pr_debug("GET_VALUE: start");
 
@@ -213,12 +213,12 @@ get_exit:
 		return retval;
 
    /* GET_VALUE_SIZE ioctl call - get structure from user that contains key's
-    * type and size, search for the pair and return size if exists;
-    *
-    * Returns value_size if nothing failed, otherwise -EFAULT if memory errors
-    * and -EINVAL if pair does not exists;
-    */
-    case GET_VALUE_SIZE:
+	* type and size, search for the pair and return size if exists;
+	*
+	* Returns value_size if nothing failed, otherwise -EFAULT if memory errors
+	* and -EINVAL if pair does not exists;
+	*/
+	case GET_VALUE_SIZE:
 		pr_debug("GET_VALUE_SIZE: start\n");
 
 		if (copy_from_user(msg_dict, (dict_pair *)arg, sizeof(dict_pair))) {
@@ -265,13 +265,13 @@ get_size_exit:
 		return retval;
 
    /*
-    * GET_VALUE_TYPE ioctl call - get structure from user that contains key's
-    * type and size, search for the pair and return type if exists;
-    *
-    * Returns value_type if nothing failed, otherwise -EFAULT if memory errors
-    * and -EINVAL if pair does not exists;
-    */
-    case GET_VALUE_TYPE:
+	* GET_VALUE_TYPE ioctl call - get structure from user that contains key's
+	* type and size, search for the pair and return type if exists;
+	*
+	* Returns value_type if nothing failed, otherwise -EFAULT if memory errors
+	* and -EINVAL if pair does not exists;
+	*/
+	case GET_VALUE_TYPE:
 
 		pr_debug("GET_VALUE_TYPE: start");
 
@@ -319,13 +319,13 @@ get_type_exit:
 		return retval;
 
    /*
-    * DEL_PAIR ioctl call - get structure from user that contains key's
-    * type and size, search for the pair delete it if exists; else -
-    * do nothing;
-    *
-    * Returns 0 if nothing failed, otherwise -EFAULT if memory errors
-    */
-    case DEL_PAIR:
+	* DEL_PAIR ioctl call - get structure from user that contains key's
+	* type and size, search for the pair delete it if exists; else -
+	* do nothing;
+	*
+	* Returns 0 if nothing failed, otherwise -EFAULT if memory errors
+	*/
+	case DEL_PAIR:
 
 		pr_debug("DEL_PAIR : START");
 
@@ -373,7 +373,7 @@ del_pair_exit:
 		return -EINVAL;
 	}
 
-    return 0;
+	return 0;
 }
 
 /** @brief  Init driver function - get major/minor numbers, create device class,
@@ -384,61 +384,61 @@ del_pair_exit:
 static int __init dict_driver_init(void)
 {
 
-    if ((alloc_chrdev_region(&dev, 0, 1, "dict_Dev")) < 0) {
+	if ((alloc_chrdev_region(&dev, 0, 1, "dict_Dev")) < 0) {
 		pr_err("DICT_INIT: cannot allocate major number\n");
 		return -1;
-    }
+	}
 
-    /* Dynamic major and minor number allocation */
+	/* Dynamic major and minor number allocation */
 
-    pr_info("DICT_INIT: Major = %d Minor = %d \n", MAJOR(dev), MINOR(dev));
-    cdev_init(&dict_cdev, &fops);
+	pr_info("DICT_INIT: Major = %d Minor = %d \n", MAJOR(dev), MINOR(dev));
+	cdev_init(&dict_cdev, &fops);
 
-    /* Adding device as character device */
+	/* Adding device as character device */
 
-    if ((cdev_add(&dict_cdev, dev, 1)) < 0) {
+	if ((cdev_add(&dict_cdev, dev, 1)) < 0) {
 		pr_err("DICT_INIT: cannot add the device to the system\n");
 		goto r_class;
-    }
+	}
 
-    /* Creating device class */
+	/* Creating device class */
 
-    if (IS_ERR(dev_class = class_create(THIS_MODULE, "dict_class"))) {
+	if (IS_ERR(dev_class = class_create(THIS_MODULE, "dict_class"))) {
 		pr_err("DICT_INIT: cannot create the struct class\n");
 		goto r_class;
-    }
+	}
 
-    /* Creating device */
+	/* Creating device */
 
-    if (IS_ERR(device_create(dev_class, NULL, dev, NULL, "dict_device"))) {
+	if (IS_ERR(device_create(dev_class, NULL, dev, NULL, "dict_device"))) {
 		pr_err("DICT_INIT: cannot create the device\n");
 		goto r_device;
-    }
+	}
 
-    pr_info("DICT_INIT: device driver inserted\n");
+	pr_info("DICT_INIT: device driver inserted\n");
 
-    /* Initilizing dict */
+	/* Initilizing dict */
 
-    pd_ptr = dict_create();
+	pd_ptr = dict_create();
 
-    if (pd_ptr == NULL) {
-		pr_err("dict_INIT: dict was not initialized\n");
+	if (pd_ptr == NULL) {
+		pr_err("DICT_INIT: dict was not initialized\n");
 		goto r_device;
-    }
+	}
 
-    /* Initilize mutex at runtime */
+	/* Initilize mutex at runtime */
 
-    mutex_init(&dict_mutex);
+	mutex_init(&dict_mutex);
 
-    pr_info("dict_INIT: dict initialized\n");
+	pr_info("DICT_INIT: dict initialized\n");
 
-    return 0;
+	return 0;
 
 r_device:
-    class_destroy(dev_class);
+	class_destroy(dev_class);
 r_class:
-    unregister_chrdev_region(dev, 1);
-    return -1;
+	unregister_chrdev_region(dev, 1);
+	return -1;
 }
 
 
@@ -448,12 +448,12 @@ r_class:
  */
 static void __exit dict_driver_exit(void)
 {
-    device_destroy(dev_class, dev);
-    class_destroy(dev_class);
-    cdev_del(&dict_cdev);
-    unregister_chrdev_region(dev, 1);
-    dict_destroy(pd_ptr);
-    pr_info("DICT_EXIT: device removed\n");
+	device_destroy(dev_class, dev);
+	class_destroy(dev_class);
+	cdev_del(&dict_cdev);
+	unregister_chrdev_region(dev, 1);
+	dict_destroy(pd_ptr);
+	pr_info("DICT_EXIT: device removed\n");
 }
 
 /*
@@ -469,24 +469,24 @@ static void __exit dict_driver_exit(void)
  */
 static dict *dict_create()
 {
-    dict *pd = kmalloc(sizeof(dict), GFP_KERNEL);
+	dict *pd = kmalloc(sizeof(dict), GFP_KERNEL);
 
-    if (pd == NULL) {
+	if (pd == NULL) {
 		pr_err("DICT_CREATE: kmalloc for dict failed");
 		return NULL;
-    }
+	}
 
-    pd->dict_size   = INITIAL_DICTSIZE;
-    pd->num_entries = 0;
-    pd->dict_table  = kzalloc(INITIAL_DICTSIZE * sizeof(dict_pair), GFP_KERNEL);
+	pd->dict_size   = INITIAL_DICTSIZE;
+	pd->num_entries = 0;
+	pd->dict_table  = kzalloc(INITIAL_DICTSIZE * sizeof(dict_pair), GFP_KERNEL);
 
-    if (pd->dict_table == NULL) {
+	if (pd->dict_table == NULL) {
 		pr_err("DICT_CREATE: kzalloc for dict_table failed");
 		kfree(pd);
 		return NULL;
-    }
+	}
 
-    return pd;
+	return pd;
 }
 
 
@@ -496,21 +496,21 @@ static dict *dict_create()
  */
 static void dict_destroy(dict *d)
 {
-    int i;
-    dict_pair *curr;
-    dict_pair *next;
+	int i;
+	dict_pair *curr;
+	dict_pair *next;
 
-    for (i = 0; i < d->dict_size; i++) {
+	for (i = 0; i < d->dict_size; i++) {
 		for (curr = d->dict_table[i]; curr != NULL; curr = next) {
 			next = curr->next;
 			kfree(curr->key);
 			kfree(curr->value);
 			kfree(curr);
 		}
-    }
+	}
 
-    kfree(d->dict_table);
-    kfree(d);
+	kfree(d->dict_table);
+	kfree(d);
 }
 
 
@@ -524,15 +524,15 @@ static void dict_destroy(dict *d)
  */
 static int dict_set(dict *pd, void *key, void *value, dict_pair *msg_dict)
 {
-    int bucket_id;
-    unsigned long hash;
-    dict_pair *curr;
-    dict_pair *new_entry;
+	int bucket_id;
+	unsigned long hash;
+	dict_pair *curr;
+	dict_pair *new_entry;
 
-    hash = hash_mem(msg_dict->key, msg_dict->key_size);
-    bucket_id = hash % pd->dict_size;
+	hash = hash_mem(msg_dict->key, msg_dict->key_size);
+	bucket_id = hash % pd->dict_size;
 
-    curr = pd->dict_table[bucket_id];
+	curr = pd->dict_table[bucket_id];
 
 	while (curr != NULL) {
 		if (curr->key_hash == hash && curr->key_size == msg_dict->key_size) {
@@ -546,45 +546,45 @@ static int dict_set(dict *pd, void *key, void *value, dict_pair *msg_dict)
 			}
 		}
 		curr = curr->next;
-    }
+	}
 
-    new_entry = kzalloc(sizeof(dict_pair), GFP_KERNEL);
+	new_entry = kzalloc(sizeof(dict_pair), GFP_KERNEL);
 
-    if (new_entry == NULL) {
+	if (new_entry == NULL) {
 		return -ENOMEM;
-    }
+	}
 
-    new_entry->key_hash         = hash;
-    new_entry->key_type         = msg_dict->key_type;
-    new_entry->key_size         = msg_dict->key_size;
-    new_entry->value_type       = msg_dict->value_type;
-    new_entry->value_size       = msg_dict->value_size;
-    new_entry->key              = kzalloc(msg_dict->key_size, GFP_KERNEL);
-    new_entry->value            = kzalloc(msg_dict->value_size, GFP_KERNEL);
+	new_entry->key_hash         = hash;
+	new_entry->key_type         = msg_dict->key_type;
+	new_entry->key_size         = msg_dict->key_size;
+	new_entry->value_type       = msg_dict->value_type;
+	new_entry->value_size       = msg_dict->value_size;
+	new_entry->key              = kzalloc(msg_dict->key_size, GFP_KERNEL);
+	new_entry->value            = kzalloc(msg_dict->value_size, GFP_KERNEL);
 
 	if (new_entry-> key == NULL) {
 		kfree(new_entry);
 		return -ENOMEM;
-    }
+	}
 	
 	if (new_entry->value == NULL) {
 		kfree(new_entry->key);
 		kfree(new_entry);
 		return -ENOMEM;
-    }
+	}
 
-    memcpy(new_entry->key, key, msg_dict->key_size);
-    memcpy(new_entry->value, value, msg_dict->value_size);
+	memcpy(new_entry->key, key, msg_dict->key_size);
+	memcpy(new_entry->value, value, msg_dict->value_size);
 
-    new_entry->next = pd->dict_table[bucket_id];
-    pd->dict_table[bucket_id] = new_entry;
-    pd->num_entries++;
+	new_entry->next = pd->dict_table[bucket_id];
+	pd->dict_table[bucket_id] = new_entry;
+	pd->num_entries++;
 
-    if (pd->num_entries > pd->dict_size * DICT_GROW_DENSITY) {
+	if (pd->num_entries > pd->dict_size * DICT_GROW_DENSITY) {
 		dict_grow(pd);
-    }
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -596,27 +596,27 @@ static int dict_set(dict *pd, void *key, void *value, dict_pair *msg_dict)
  */
 static dict_pair *dict_get(dict *pd, const void *key, const size_t key_size)
 {
-    int bucket_id;
-    unsigned long hash;
-    dict_pair *curr;
+	int bucket_id;
+	unsigned long hash;
+	dict_pair *curr;
 
-    hash = hash_mem(key, key_size);
-    bucket_id = hash % pd->dict_size;
-    curr = pd->dict_table[bucket_id];
+	hash = hash_mem(key, key_size);
+	bucket_id = hash % pd->dict_size;
+	curr = pd->dict_table[bucket_id];
 
-    if (curr == NULL) {
+	if (curr == NULL) {
 		return NULL;
-    }
+	}
 
-    while (curr) {
+	while (curr) {
 		if (curr->key_hash == hash && curr->key_size == key_size) {
 			if (!memcmp(curr->key, key, key_size)) {
 				return curr;
 			}
 		}
 		curr = curr->next;
-    }
-    return NULL;
+	}
+	return NULL;
 }
 
 /** @brief Grow dict by DICTSIZE_MULTIPLIER to fit new entires, rehash all entries
@@ -625,23 +625,23 @@ static dict_pair *dict_get(dict *pd, const void *key, const size_t key_size)
  */
 static void dict_grow(dict *pd)
 {
-    int i;
-    int new_index;
-    int new_size;
+	int i;
+	int new_index;
+	int new_size;
 
-    dict_pair *old_curr;
-    dict_pair *new_curr;
-    dict_pair **new_table;
+	dict_pair *old_curr;
+	dict_pair *new_curr;
+	dict_pair **new_table;
 
-    new_size = pd->dict_size * DICTSIZE_MULTIPLIER;
-    new_table = kzalloc(new_size * sizeof(*new_table), GFP_KERNEL);
+	new_size = pd->dict_size * DICTSIZE_MULTIPLIER;
+	new_table = kzalloc(new_size * sizeof(*new_table), GFP_KERNEL);
 
-    if (new_table == NULL) {
+	if (new_table == NULL) {
 		pr_err("DICT_GROW: kzalloc failed");
 		return;
-    }
+	}
 
-    for (i = 0; i < pd->dict_size; i++) {
+	for (i = 0; i < pd->dict_size; i++) {
 		old_curr = pd->dict_table[i];
 		while (old_curr) {
 			new_index = old_curr->key_hash % new_size;
@@ -650,12 +650,12 @@ static void dict_grow(dict *pd)
 			new_curr->next = new_table[new_index];
 			new_table[new_index] = new_curr;
 		}
-    }
+	}
 	
 	kfree(pd->dict_table);
-    pd->dict_size = new_size;
-    pd->dict_table = new_table;
-    return;
+	pd->dict_size = new_size;
+	pd->dict_table = new_table;
+	return;
 }
 
 
@@ -669,49 +669,49 @@ static void dict_grow(dict *pd)
 static void dict_del(dict *pd, void *key, size_t key_size)
 {
 	int bucket_id;
-    unsigned long hash;
+	unsigned long hash;
 
 	dict_pair *curr;
-    dict_pair *prev;
+	dict_pair *prev;
 
-    hash = hash_mem(key, key_size);
-    bucket_id = hash % pd->dict_size;
+	hash = hash_mem(key, key_size);
+	bucket_id = hash % pd->dict_size;
 
-    curr = pd->dict_table[bucket_id];
+	curr = pd->dict_table[bucket_id];
 
-    if (curr == NULL) {
+	if (curr == NULL) {
 		return;
-    }
+	}
 
-    if (curr->key_hash == hash && curr->key_size == key_size) {
+	if (curr->key_hash == hash && curr->key_size == key_size) {
 		if (!memcmp(curr->key, key, key_size)) {
 			pd->dict_table[bucket_id] = curr->next;
 			goto deleted;	
 		}
-    }
+	}
 
-    prev = curr;
-    curr = curr->next;
+	prev = curr;
+	curr = curr->next;
 
-    while(curr) {
+	while(curr) {
 		if (curr->key_hash == hash) {
 			prev->next = curr->next;
 			goto deleted;
 		}
 		prev = curr;
 		curr = curr->next;
-    }
+	}
 
-    return;
+	return;
 
 deleted:
-    kfree(curr->key);
-    kfree(curr->value);
-    kfree(curr);
-    if (pd->num_entries > 1) {
+	kfree(curr->key);
+	kfree(curr->value);
+	kfree(curr);
+	if (pd->num_entries > 1) {
 		pd->num_entries--;
-    }
-    return;
+	}
+	return;
 }
 
 /*
@@ -720,14 +720,14 @@ deleted:
  */
 static unsigned long hash_mem(const unsigned char *s, size_t len)
 {
-    unsigned long h;
-    int i;
+	unsigned long h;
+	int i;
 
-    h = 0;
-    for (i = 0; i < len; i++) {
+	h = 0;
+	for (i = 0; i < len; i++) {
 		h = (h << 13) + (h >> 7) + h + s[i];
-    }
-    return h;
+	}
+	return h;
 }
 
 module_init(dict_driver_init);
