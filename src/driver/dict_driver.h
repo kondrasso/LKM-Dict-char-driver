@@ -10,6 +10,7 @@ struct dict_pair
 
     size_t key_size;
     size_t value_size;
+    size_t *value_size_adress;
 
     void *key;
     void *value;

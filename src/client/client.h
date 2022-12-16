@@ -14,7 +14,7 @@
 #define SET_PAIR _IOWR('a', 'a', dict_pair *)
 #define DEL_PAIR _IOWR('a', 'b', dict_pair *)
 #define GET_VALUE _IOWR('b', 'b', dict_pair *)
-#define GET_VALUE_SIZE _IOR('b', 'c', dict_pair *)
+#define GET_VALUE_SIZE _IOWR('b', 'c', dict_pair *)
 #define GET_VALUE_TYPE _IOR('c', 'c', dict_pair *)
 
 typedef struct dict_pair dict_pair;
@@ -28,7 +28,8 @@ struct dict_pair
     int value_type;
 
     size_t key_size;
-    size_t value_size;    
+    size_t value_size;
+    size_t *value_size_adress;
 
     void *key;
     void *value;
@@ -36,9 +37,9 @@ struct dict_pair
     dict_pair *next;
 };
 
-enum my_data_types {
-    MY_INT = 1,
-    MY_CHAR = 2
+enum data_types {
+    INT = 1,
+    CHAR = 2
 };
 
 int del_pair();

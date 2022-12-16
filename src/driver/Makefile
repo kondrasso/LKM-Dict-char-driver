@@ -1,5 +1,5 @@
-obj-m += my_dict_driver.o
-kvs-objs :=  dict_header.o
+obj-m += dict_driver.o
+kvs-objs :=  dict_driver.o
  
 KDIR = /lib/modules/$(shell uname -r)/build
  

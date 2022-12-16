@@ -18,7 +18,7 @@
 #define SET_PAIR _IOWR('a', 'a', dict_pair *)
 #define DEL_PAIR _IOWR('a', 'b', dict_pair *)
 #define GET_VALUE _IOWR('b', 'b', dict_pair *)
-#define GET_VALUE_SIZE _IOR('b', 'c', dict_pair *)
+#define GET_VALUE_SIZE _IOWR('b', 'c', dict_pair *)
 #define GET_VALUE_TYPE _IOR('c', 'c', dict_pair *)
 
 /*  Dict constants */
@@ -78,9 +78,9 @@ struct mutex dict_mutex;
  */
 static long dict_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	long retval;
 	void *key;
 	void *value;
+	long retval;
 	dict_pair *msg_dict;
 	dict_pair *found_pair;
 
@@ -254,8 +254,14 @@ get_exit:
 			retval = -ENOENT;
 			goto get_size_exit_full;
 		}
+		
+		if (copy_to_user(msg_dict->value_size_adress, &found_pair->value_size, sizeof(size_t))) {
+			pr_err("GET_VALUE_SIZE: cannot get key from user");
+			retval = -EFAULT;
+			goto get_size_exit_full;
+		}
 
-		retval = found_pair->value_size;
+		retval = 0;
 
 get_size_exit_full:
 		kfree(key);
@@ -438,6 +444,7 @@ r_device:
 	class_destroy(dev_class);
 r_class:
 	unregister_chrdev_region(dev, 1);
+	cdev_del(&dict_cdev);
 	return -1;
 }
 
