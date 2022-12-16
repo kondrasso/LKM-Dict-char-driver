@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <pthread.h>
 
+#define NO_PAIR 420
 #define DEVICE_PATH "/dev/dict_device"
 
 #define SET_PAIR _IOWR('a', 'a', dict_pair *)

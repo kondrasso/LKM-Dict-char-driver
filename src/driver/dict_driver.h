@@ -1,3 +1,5 @@
+#define NO_PAIR 420
+
 typedef struct dict_pair dict_pair;
 typedef struct dict dict;
 

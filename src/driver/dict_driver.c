@@ -103,19 +103,20 @@ static long dict_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		if (copy_from_user(msg_dict, (dict_pair *)arg, sizeof(dict_pair))) {
 			pr_err("SET_PAIR: cannot get msg from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto set_exit;
 		}
 
 		if (msg_dict->key == NULL || msg_dict->value == NULL) {
 			pr_err("SET_PAIR: NULL as key or value");
-			retval = -EINVAL;
+			retval = EINVAL;
 			goto set_exit;
 		}
 
-		if (msg_dict->key_size == 0 || msg_dict->value_size == 0) {
+		if (msg_dict->key_size == 0 || msg_dict->value_size == 0
+			|| msg_dict->key_type < 0 || msg_dict->value_type < 0) {
 			pr_err("SET_PAIR: illegal size");
-			retval = -EINVAL;
+			retval = EINVAL;
 			goto set_exit;
 		}
 
@@ -124,19 +125,19 @@ static long dict_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		if (key == NULL || value == NULL) {
 			pr_err("SET_PAIR: kmalloc failed");
-			retval = -ENOMEM;
+			retval = ENOMEM;
 			goto set_exit;
 		}
 
 		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("SET_PAIR: cannot get key from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto set_exit_full;
 		}
 
 		if (copy_from_user(value, msg_dict->value, msg_dict->value_size)) {
 			pr_err("SET_PAIR: cannot value key from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto set_exit_full;
 		}
 
@@ -165,13 +166,13 @@ set_exit:
 
 		if (copy_from_user(msg_dict, (dict_pair *)arg, sizeof(dict_pair))) {
 			pr_err("GET_VALUE: cannot get from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto get_exit;
 		}
 
 		if (msg_dict->key == NULL || msg_dict->key_size == 0) {
 			pr_err("GET_VALUE: NULL as key or zero key size");
-			retval = -EINVAL;
+			retval = EINVAL;
 			goto get_exit;
 		}
 
@@ -179,13 +180,13 @@ set_exit:
 
 		if (key == NULL) {
 			pr_err("GET_VALUE: kmalloc failed");
-			retval = -ENOMEM;
+			retval = ENOMEM;
 			goto get_exit;
 		}
 
 		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("GET_VALUE: cannot get key");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto get_exit_full;
 		}
 
@@ -193,13 +194,13 @@ set_exit:
 
 		if (found_pair == NULL) {
 			pr_info("GET_VALUE: no such pair");
-			retval = -ENOENT;
+			retval = ENOENT;
 			goto get_exit_full;
 		}
 
 		if (copy_to_user(msg_dict->value, found_pair->value, found_pair->value_size)) {
 			pr_err("GET_VALUE: cannot sent value to user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto get_exit_full;
 		}
 
@@ -223,13 +224,19 @@ get_exit:
 
 		if (copy_from_user(msg_dict, (dict_pair *)arg, sizeof(dict_pair))) {
 			pr_err("GET_VALUE_SIZE: cannot get msg from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto get_size_exit;
 		}
 
 		if (msg_dict->key == NULL || msg_dict->key_size == 0) {
 			pr_err("GET_VALUE_SIZE: NULL as key or zero key size");
-			retval = -EINVAL;
+			retval = EINVAL;
+			goto get_size_exit;
+		}
+		
+		if (msg_dict->value_size_adress == NULL) {
+			pr_err("GET_VALUE_SIZE: NULL value size adress");
+			retval = EINVAL;
 			goto get_size_exit;
 		}
 
@@ -237,13 +244,13 @@ get_exit:
 
 		if (key == NULL) {
 			pr_err("GET_VALUE_SIZE: kmalloc failed");
-			retval = -ENOMEM;
+			retval = ENOMEM;
 			goto get_size_exit;
 		}
 
 		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("GET_VALUE_SIZE: cannot get key from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto get_size_exit_full;
 		}
 
@@ -251,13 +258,13 @@ get_exit:
 
 		if (found_pair == NULL) {
 			pr_err("GET_VALUE_SIZE: no such pair");
-			retval = -ENOENT;
+			retval = NO_PAIR;
 			goto get_size_exit_full;
 		}
 		
 		if (copy_to_user(msg_dict->value_size_adress, &found_pair->value_size, sizeof(size_t))) {
 			pr_err("GET_VALUE_SIZE: cannot get key from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto get_size_exit_full;
 		}
 
@@ -283,13 +290,13 @@ get_size_exit:
 
 		if (copy_from_user(msg_dict, (dict_pair *)arg, sizeof(dict_pair))) {
 			pr_err("GET_VALUE_TYPE: cannot get msg from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto get_type_exit;
 		}
 
 		if (msg_dict->key == NULL || msg_dict->key_size == 0) {
 			pr_err("GET_VALUE_TYPE: NULL as key or key_size is zero");
-			retval = -EINVAL;
+			retval = EINVAL;
 			goto get_type_exit;
 		}
 
@@ -297,13 +304,13 @@ get_size_exit:
 
 		if (key == NULL) {
 			pr_err("GET_VALUE_TYPE: kmalloc failed");
-			retval = -ENOMEM;
+			retval = ENOMEM;
 			goto get_type_exit;
 		}
 
 		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("GET_VALUE_TYPE: cannot get key from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto get_type_exit_full;
 		}
 
@@ -311,7 +318,7 @@ get_size_exit:
 
 		if (found_pair == NULL) {
 			pr_err("GET_VALUE_TYPE: no such pair");
-			retval = -ENOENT;
+			retval = ENOENT;
 			goto get_type_exit_full;
 		}
 
@@ -337,13 +344,13 @@ get_type_exit:
 
 		if (copy_from_user(msg_dict, (dict_pair *)arg, sizeof(dict_pair))) {
 			pr_err("DEL_PAIR : cannot get msg from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto del_pair_exit;
 		}
 
 		if (msg_dict->key == NULL || msg_dict->key_size == 0) {
 			pr_err("GET_VALUE_TYPE: NULL as key or key_size is zero");
-			retval = -EINVAL;
+			retval = EINVAL;
 			goto del_pair_exit;
 		}
 
@@ -351,13 +358,13 @@ get_type_exit:
 
 		if (key == NULL) {
 			pr_err("GET_VALUE_TYPE: kmalloc failed");
-			retval = -ENOMEM;
+			retval = ENOMEM;
 			goto del_pair_exit;
 		}
 
 		if (copy_from_user(key, msg_dict->key, msg_dict->key_size)) {
 			pr_err("DEL_PAIR : cannot get key from user");
-			retval = -EFAULT;
+			retval = EFAULT;
 			goto del_pair_exit_full;
 		}
 
@@ -376,7 +383,7 @@ del_pair_exit:
 		pr_err("Bad IOCTL command\n");
 		kfree(msg_dict);
 		mutex_unlock(&dict_mutex);
-		return -EINVAL;
+		return EINVAL;
 	}
 
 	return 0;

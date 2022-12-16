@@ -48,9 +48,7 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
     return retval;
 }
 
-/** @brief Sends get requests via IOCTL that will copy value to provided structure;
- *  conducts IOCTL get_value_size and get_value type for memory allocation and tracking
- *  properties
+/** @brief 
  *  @param pd  Pointer to a shared dictionary object
  *  @param key  Pointer to key location in memory
  *  @param key_size  size of key, follows sizeof() format with size_t
@@ -65,7 +63,7 @@ dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
-        printf("GET_VALUE: message calloc failed\n");
+        fprintf(stderr, "GET_VALUE: message calloc failed\n");
         return NULL;
     }
 
@@ -77,14 +75,18 @@ dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     retval = ioctl(fd, GET_VALUE_SIZE, message);
 
     if (retval != 0) {
-        printf("GET_VALUE_SIZE: error %s\n", strerror(retval));
+        if (retval == NO_PAIR) {
+            fprintf(stderr, "GET_VALUE_SIZE: no such pair\n");
+        } else {
+            fprintf(stderr, "GET_VALUE_SIZE: %s\n", strerror(retval));
+        }
         goto get_error;
     }
-
+        
     value_type = ioctl(fd, GET_VALUE_TYPE, message);
 
     if (value_type < 0) {
-        printf("GET_VALUE_TYPE: error %s\n", strerror(value_type));
+        fprintf(stderr, "GET_VALUE_TYPE: %s\n", strerror(value_type));
         goto get_error;
     }
     
@@ -92,7 +94,7 @@ dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     message->value              = malloc(message->value_size);
 
     if (message->value == NULL) {
-        printf("GET_VALUE: value malloc failed\n");
+        fprintf(stderr, "GET_VALUE: value malloc failed\n");
         goto get_error;
     }
 
@@ -100,7 +102,7 @@ dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     retval = ioctl(fd, GET_VALUE, message);
     
     if (retval != 0) {
-        printf("GET_VALUE: error %s\n", strerror(retval));
+        fprintf(stderr, "GET_VALUE: %s\n", strerror(retval));
     }
     
     return message;
@@ -126,7 +128,7 @@ int del_pair(int fd, void *key, size_t key_size, int key_type)
     message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
-        printf("DEL_PAIR: calloc failed\n");
+        fprintf(stderr, "DEL_PAIR: calloc failed\n");
         return -ENOMEM;
     }
 
@@ -137,7 +139,7 @@ int del_pair(int fd, void *key, size_t key_size, int key_type)
     retval = ioctl(fd, DEL_PAIR, message);
     
     if (retval != 0) {
-        printf("DEL_PAIR: error %s\n", strerror(retval));
+        fprintf(stderr, "DEL_PAIR: error %s\n", strerror(retval));
     }
     
     free(message);

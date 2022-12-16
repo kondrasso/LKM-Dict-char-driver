@@ -25,7 +25,7 @@ int main() {
 	}
 	
 	/* delete pair */
-	del_pair(fd, key, sizeof(key), INT);   
+	del_pair(fd, key, sizeof(key), INT);
 	
 	free(got->value);
 	free(got);
