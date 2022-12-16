@@ -21,7 +21,7 @@
  */
 int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size_t value_size, int value_type)
 {
-    long retval;
+    int retval;
     dict_pair *message;
     
     message = calloc(1, sizeof(dict_pair));
@@ -43,7 +43,8 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
     if (retval != 0) {
         printf("SET_PAIR: %s\n", strerror(retval));
     }
-
+    
+    free(message);
     return retval;
 }
 
@@ -58,7 +59,6 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
 dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
 {
     int retval;
-    int retval_size;
     long value_type;
     dict_pair *message;
 
@@ -74,10 +74,10 @@ dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     message->key_type           = key_type;
     message->value_size_adress  = &message->value_size;
 
-    retval_size = ioctl(fd, GET_VALUE_SIZE, message);
+    retval = ioctl(fd, GET_VALUE_SIZE, message);
 
-    if (retval_size != 0) {
-        printf("GET_VALUE_SIZE: error %s\n", strerror(retval_size));
+    if (retval != 0) {
+        printf("GET_VALUE_SIZE: error %s\n", strerror(retval));
         goto get_error;
     }
 
