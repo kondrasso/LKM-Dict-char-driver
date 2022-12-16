@@ -62,7 +62,7 @@ Example code for operations:
 ```c
 int main() {
   int fd;
-  pyld_pair *got;
+  dict_pair *got;
   int  my_key[4] = {0, 1, 2, 3};
   char my_value[6] = "myval\0";
 

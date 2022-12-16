@@ -279,7 +279,7 @@ def gen_function_header(thread_name: str) -> list[str]:
         f"void *test_{thread_name}(void* fd_{thread_name[-1]})\n",
         "{\n",
         f"int fd = (int *)fd_{thread_name[-1]};\n",
-        "pyld_pair *recieve;\n",
+        "dict_pair *recieve;\n",
     ]
     return function_header
 

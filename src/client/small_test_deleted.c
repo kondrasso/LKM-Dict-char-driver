@@ -22,7 +22,7 @@
  */
 int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size_t value_size, int value_type)
 {
-    pyld_pair *message;
+    dict_pair *message;
 
     if (key == NULL || value == NULL) {
         printf("SET_PAIR: NULL key and values not allowed\n");
@@ -34,7 +34,7 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
         return -1;
     }
 
-    message = calloc(1, sizeof(pyld_pair));
+    message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
         printf("SET_PAIR: message calloc failed\n");
@@ -75,11 +75,11 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
  *  @param key_size  size of key, follows sizeof() format with size_t
  *  @return Struct containing value for matching key; NULL if pair does not exist
  */
-pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
+dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
 {
     int value_type;
     long value_size;
-    pyld_pair *message;
+    dict_pair *message;
 
     if (key == NULL) {
         printf("GET_VALUE: NULL key not allowed\n");
@@ -91,7 +91,7 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
         return NULL;
     }
 
-    message = calloc(1, sizeof(pyld_pair));
+    message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
         printf("GET_VALUE: message calloc failed\n");
@@ -147,7 +147,7 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
  */
 int del_pair(int fd, void *key, size_t key_size, int key_type)
 {
-    pyld_pair *message;
+    dict_pair *message;
     long value_size;
 
     if (key == NULL) {
@@ -161,7 +161,7 @@ int del_pair(int fd, void *key, size_t key_size, int key_type)
     }
 
 
-    message = calloc(1, sizeof(pyld_pair));
+    message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
         printf("DEL_PAIR: calloc failed\n");
@@ -244,7 +244,7 @@ int value_2_9[17] = {3459, 14206, 31484, 11869, 20827, 29216, 27156, 15065, 2317
 void *test_thread_0(void* fd_0)
 {
 int fd = (int *)fd_0;
-pyld_pair *recieve;
+dict_pair *recieve;
 assert(set_pair(fd, key_0_0, sizeof(key_0_0), MY_CHAR, value_0_0, sizeof(value_0_0), MY_CHAR) == 0);
 assert(set_pair(fd, key_0_1, sizeof(key_0_1), MY_CHAR, value_0_1, sizeof(value_0_1), MY_CHAR) == 0);
 assert(set_pair(fd, key_0_2, sizeof(key_0_2), MY_CHAR, value_0_2, sizeof(value_0_2), MY_CHAR) == 0);
@@ -392,7 +392,7 @@ assert(get_value(fd, key_0_9, sizeof(key_0_9), MY_CHAR) == NULL);
 void *test_thread_1(void* fd_1)
 {
 int fd = (int *)fd_1;
-pyld_pair *recieve;
+dict_pair *recieve;
 assert(set_pair(fd, key_1_0, sizeof(key_1_0), MY_INT, value_1_0, sizeof(value_1_0), MY_CHAR) == 0);
 assert(set_pair(fd, key_1_1, sizeof(key_1_1), MY_INT, value_1_1, sizeof(value_1_1), MY_CHAR) == 0);
 assert(set_pair(fd, key_1_2, sizeof(key_1_2), MY_INT, value_1_2, sizeof(value_1_2), MY_CHAR) == 0);
@@ -540,7 +540,7 @@ assert(get_value(fd, key_1_9, sizeof(key_1_9), MY_INT) == NULL);
 void *test_thread_2(void* fd_2)
 {
 int fd = (int *)fd_2;
-pyld_pair *recieve;
+dict_pair *recieve;
 assert(set_pair(fd, key_2_0, sizeof(key_2_0), MY_INT, value_2_0, sizeof(value_2_0), MY_INT) == 0);
 assert(set_pair(fd, key_2_1, sizeof(key_2_1), MY_INT, value_2_1, sizeof(value_2_1), MY_INT) == 0);
 assert(set_pair(fd, key_2_2, sizeof(key_2_2), MY_INT, value_2_2, sizeof(value_2_2), MY_INT) == 0);

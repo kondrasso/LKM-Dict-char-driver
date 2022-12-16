@@ -22,7 +22,7 @@
  */
 int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size_t value_size, int value_type)
 {
-    pyld_pair *message;
+    dict_pair *message;
 
     if (key == NULL || value == NULL) {
         printf("SET_PAIR: NULL key and values not allowed\n");
@@ -34,7 +34,7 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
         return -1;
     }
 
-    message = calloc(1, sizeof(pyld_pair));
+    message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
         printf("SET_PAIR: message calloc failed\n");
@@ -75,11 +75,11 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
  *  @param key_size  size of key, follows sizeof() format with size_t
  *  @return Struct containing value for matching key; NULL if pair does not exist
  */
-pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
+dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
 {
     int value_type;
     long value_size;
-    pyld_pair *message;
+    dict_pair *message;
 
     if (key == NULL) {
         printf("GET_VALUE: NULL key not allowed\n");
@@ -91,7 +91,7 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
         return NULL;
     }
 
-    message = calloc(1, sizeof(pyld_pair));
+    message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
         printf("GET_VALUE: message calloc failed\n");
@@ -147,7 +147,7 @@ pyld_pair *get_value(int fd, void *key, size_t key_size, int key_type)
  */
 int del_pair(int fd, void *key, size_t key_size, int key_type)
 {
-    pyld_pair *message;
+    dict_pair *message;
     long value_size;
 
     if (key == NULL) {
@@ -161,7 +161,7 @@ int del_pair(int fd, void *key, size_t key_size, int key_type)
     }
 
 
-    message = calloc(1, sizeof(pyld_pair));
+    message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
         printf("DEL_PAIR: calloc failed\n");

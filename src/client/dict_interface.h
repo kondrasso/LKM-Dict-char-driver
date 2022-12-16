@@ -9,18 +9,18 @@
 #include <assert.h>
 #include <pthread.h>
 
-#define DEVICE_PATH "/dev/pyld_device"
+#define DEVICE_PATH "/dev/dict_device"
 
-#define SET_PAIR _IOWR('a', 'a', pyld_pair *)
-#define DEL_PAIR _IOWR('a', 'b', pyld_pair *)
-#define GET_VALUE _IOWR('b', 'b', pyld_pair *)
-#define GET_VALUE_SIZE _IOR('b', 'c', pyld_pair *)
-#define GET_VALUE_TYPE _IOR('c', 'c', pyld_pair *)
+#define SET_PAIR _IOWR('a', 'a', dict_pair *)
+#define DEL_PAIR _IOWR('a', 'b', dict_pair *)
+#define GET_VALUE _IOWR('b', 'b', dict_pair *)
+#define GET_VALUE_SIZE _IOR('b', 'c', dict_pair *)
+#define GET_VALUE_TYPE _IOR('c', 'c', dict_pair *)
 
-typedef struct pyld_pair pyld_pair;
-typedef struct pyld_value_data pyld_value_data;
+typedef struct dict_pair dict_pair;
+typedef struct dict_value_data dict_value_data;
 
-struct pyld_pair
+struct dict_pair
 {
     unsigned long key_hash;
 
@@ -33,7 +33,7 @@ struct pyld_pair
     void *key;
     void *value;
 
-    pyld_pair *next;
+    dict_pair *next;
 };
 
 enum my_data_types {
@@ -43,4 +43,4 @@ enum my_data_types {
 
 int del_pair();
 int set_pair();
-pyld_pair *get_value();
+dict_pair *get_value();
