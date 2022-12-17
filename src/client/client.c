@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-
 #include "client.h"
 
 
@@ -63,7 +64,7 @@ dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     
     if (fd < 0) {
         fprintf(stderr, "GET_VALUE: invalid file descriptor %d\n", fd);
-        return fd;
+        return NULL;
     }
     
 
