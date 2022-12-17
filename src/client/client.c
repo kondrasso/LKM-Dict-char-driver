@@ -53,13 +53,14 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
 /** @brief 
  *  @param pd  Pointer to a shared dictionary object
  *  @param key  Pointer to key location in memory
- *  @param key_size  size of key, follows sizeof() format with size_t
+ *  @param key_size  Size of key, follows sizeof() format with size_t
+ *  @param key_type Number that charachterizes key for casting in userspace
  *  @return Struct containing value for matching key; NULL if pair does not exist
  */
 dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
 {
     int retval;
-    long value_type;
+    int value_type;
     dict_pair *message;
     
     if (fd < 0) {
@@ -125,12 +126,12 @@ get_error:
  *  @param pd Pointer to a shared dictionary object
  *  @param key Pointer to key location in memory
  *  @param key_size Size of key, follows sizeof() format with size_t
+ *  @param key_type Number that charachterizes key for casting in userspace
  *  @return 0 if ioctl worked without error; else -1
  */
 int del_pair(int fd, void *key, size_t key_size, int key_type)
 {
     long retval;
-    long value_size;
     dict_pair *message;
     
     if (fd < 0) {
@@ -142,7 +143,9 @@ int del_pair(int fd, void *key, size_t key_size, int key_type)
 
     if (message == NULL) {
         fprintf(stderr, "DEL_PAIR: calloc failed\n");
-        return -ENOMEM;
+        return 
+        
+        ENOMEM;
     }
 
     message->key                = key;

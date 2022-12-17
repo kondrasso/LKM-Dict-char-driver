@@ -10,9 +10,9 @@
 
 #define KEY_LEN      20
 #define VAL_LEN      20
-#define NUM_OF_PAIRS 100000
+#define NUM_OF_PAIRS 1000000
 
-static char *rand_string(char *str, size_t size)
+static void rand_string(char *str, size_t size)
 {
     const char charset[] = "abcdefghijklmnopqrstuvwxyz";
     if (size) {
@@ -23,35 +23,33 @@ static char *rand_string(char *str, size_t size)
         }
         str[size] = '\0';
     }
-    return str;
 }
 
-static int *rand_int_arr(int *int_arr, size_t size)
+static void rand_int_arr(int *int_arr, size_t size)
 {
     if (size) {
         --size;
         for (size_t n = 0; n < size; n++) {
-            int_arr[n] = rand();;
+            int_arr[n] = rand();
         }
     }
-    return int_arr;
 }
 
 /* char to char thread */
 void *test_thread_0(void *fd) 
 {
-	int fd_0 = (int *)fd;
+	int fd_0 = *(int *)fd;;
 	dict_pair *recieve;
 	
 	char **keys_0;
 	char **vals_0;
 	
-	keys_0 = malloc(NUM_OF_PAIRS * sizeof(char *));
-	vals_0 = malloc(NUM_OF_PAIRS * sizeof(char *));
+	keys_0 = calloc(NUM_OF_PAIRS, sizeof(char *));
+	vals_0 = calloc(NUM_OF_PAIRS, sizeof(char *));
 	
 	for (int i = 0; i < NUM_OF_PAIRS; i++) {
-		keys_0[i] = malloc(sizeof(char) * KEY_LEN);
-		vals_0[i] = malloc(sizeof(char) * VAL_LEN);
+		keys_0[i] = calloc(KEY_LEN, sizeof(char));
+		vals_0[i] = calloc(VAL_LEN, sizeof(char));
 		rand_string(keys_0[i], KEY_LEN);
 		rand_string(vals_0[i], VAL_LEN);
 	}
@@ -73,28 +71,29 @@ void *test_thread_0(void *fd)
 	
 	free(keys_0);
 	free(vals_0);
-	
+	return NULL;
 }
 
 /* int to char thread */
 void *test_thread_1(void *fd) 
 {
-	int fd_1 = (int *)fd;
+	int fd_1 = *(int *)fd;;
 	dict_pair *recieve;
 	
 	int **keys_1;
 	char **vals_1;
 	
-	keys_1 = malloc(NUM_OF_PAIRS * sizeof(int *));
-	vals_1 = malloc(NUM_OF_PAIRS * sizeof(char *));
+	keys_1 = calloc(NUM_OF_PAIRS, sizeof(int *));
+	vals_1 = calloc(NUM_OF_PAIRS, sizeof(char *));
 	
 	for (int i = 0; i < NUM_OF_PAIRS; i++) {
-		keys_1[i] = malloc(sizeof(int) * KEY_LEN);
-		vals_1[i] = malloc(sizeof(char) * VAL_LEN);
+		keys_1[i] = calloc(KEY_LEN, sizeof(int));
+		vals_1[i] = calloc(VAL_LEN, sizeof(char));
 		rand_int_arr(keys_1[i], KEY_LEN);
 		rand_string(vals_1[i], VAL_LEN);
 	}
 
+	
 	for (int i = 0; i < NUM_OF_PAIRS; i++) {
 		assert(set_pair(fd_1, keys_1[i], sizeof(keys_1[i]), INT, vals_1[i], sizeof(vals_1[i]), CHAR) == 0);
 		recieve = get_value(fd_1, keys_1[i], sizeof(keys_1[i]), INT);
@@ -112,23 +111,24 @@ void *test_thread_1(void *fd)
 	
 	free(keys_1);
 	free(vals_1);
+	return NULL;
 }
 
 /* char to int thread */
 void *test_thread_2(void *fd) 
 {
-	int fd_2 = (int *)fd;
+	int fd_2 = *(int *)fd; 
 	dict_pair *recieve;
 	
 	char **keys_2;
 	int **vals_2;
 	
-	keys_2 = malloc(NUM_OF_PAIRS * sizeof(char *));
-	vals_2 = malloc(NUM_OF_PAIRS * sizeof(int *));
+	keys_2 = calloc(NUM_OF_PAIRS, sizeof(char *));
+	vals_2 = calloc(NUM_OF_PAIRS, sizeof(int *));
 	
 	for (int i = 0; i < NUM_OF_PAIRS; i++) {
-		keys_2[i] = malloc(sizeof(char) * KEY_LEN);
-		vals_2[i] = malloc(sizeof(int) * VAL_LEN);
+		keys_2[i] = calloc(KEY_LEN, sizeof(char));
+		vals_2[i] = calloc(VAL_LEN, sizeof(int));
 		rand_string(keys_2[i], KEY_LEN);
 		rand_int_arr(vals_2[i], VAL_LEN);
 	}
@@ -150,23 +150,22 @@ void *test_thread_2(void *fd)
 	
 	free(keys_2);
 	free(vals_2);
+	return NULL;
 }
-
-
 
 int main() {
 	int fd;
 	fd = open(DEVICE_PATH, O_RDWR);
 	pthread_t thread_0, thread_1, thread_2;
 	
-	pthread_create(&thread_0, NULL, test_thread_0, fd);
-	pthread_create(&thread_1, NULL, test_thread_1, fd);
-	pthread_create(&thread_2, NULL, test_thread_1, fd);
+	pthread_create(&thread_0, NULL, test_thread_0, &fd);
+	pthread_create(&thread_1, NULL, test_thread_1, &fd);
+	pthread_create(&thread_2, NULL, test_thread_2, &fd);
 	
 	pthread_join(thread_0, NULL);
 	pthread_join(thread_1, NULL);
 	pthread_join(thread_2, NULL);
 	
-	printf("Stress test passed\n");
+	printf("Stress test (typed) passed!\n");
 	return 0;
 }

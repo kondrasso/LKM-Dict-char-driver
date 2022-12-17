@@ -70,6 +70,9 @@ void test_overwrite(int fd)
     assert(recieved->value_type == INT);
     assert(memcmp(recieved->value, new_value, recieved->value_size) == 0);
     
+    free(recieved->value);
+    free(recieved);
+    
     /* delete pair */
     assert(del_pair(fd, key, sizeof(key), CHAR) == 0);
 }

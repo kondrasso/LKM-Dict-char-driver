@@ -1,88 +1,71 @@
-# Installation and usage
+# How to compile
 
 In order to compile and insert your own custom LKM's, preliminary steps are required: please consult first and second chapters of the excellent [The Linux Kernel Module Programming Guide](https://sysprog21.github.io/lkmpg/#headers) by Peter Jay Salzman, Michael Burian, Ori Pomerantz, Bob Mottram, Jim Huang. 
 
-This project was compiled and tested on `Ubuntu 22.04.01 LTS` with `5.15.0-56-generic` kernel inside VM, with 2 cores and 8gb of RAM. Test generator requires `python 3.10`, no dependecies. 
+This project was compiled and tested on `Ubuntu 22.04.01 LTS` with `5.15.0-56-generic` kernel inside VM, with 2 cores and 8gb of RAM.
 
-## Out of the box case
+## Compilation and usage
 
-1. Compile device driver via `cd src/driver && make`
-2. Insert device driver via `sudo insmod my_dict_driver.ko`
-   - It's better to check what dmesg says via `sudo dmesg -w` 
-3. Compile any of scenarios in client, for example `cd /src/client/ && gcc small_test.c -o small_test`
-4. Run the test `sudo ./small_test`
-5. If no asserts fail - it's all good, it's working!
+Makefile in root directory will compile and link all tests and example with client api, as well as trigger Makefile in `src/driver/`. So order of laucnch should be:
 
-## Generate new testing scenarios
-
-For automatic test scenario generation use `/tests/generate_test.py` as follows:
-
-
-``` 
-$ python3 /tests/generate_test.py [--name --nt --np --maxlen --minlen --deleted --seed]
-
-optional arguments:
-  --name    name of testing scenario and corresponding .c file in /src/client/
-  --np      number of pairs to be generated for each thread
-  --maxlen  max length of the key/value
-  --minlen  min length of the key/value
-  --deleted use deleted scenario
-  --seed    seed used for random key/values generation
+```
+make
+sudo insmod src/driver/dict_driver.ko
+sudo ./example/example_client
 ```
 
-Example command for generating big_test_deleted:
 
+**WARNING: stress tests writes/reads 3 million of pairs in typed case, or use 300 threads in untyped**
 
-`python3 generate_test.py --name big_test_deleted --np 10000 --maxlen 40 --minlen 10 --deleted 1 --seed 44`
+To run tests:
 
+```
+sudo ./tests/test_error_codes
+sudo ./tests/test_stress_untyped
+sudo ./tests/test_stress_typed
+```
 
-Example command for generating big_test:
-
-
-`python3 generate_test.py --name big_test --np 10000 --maxlen 40 --minlen 10 --deleted 0 --seed 43`
-
-
-Example command for generating small_test_deleted:
-
-
-`python3 generate_test.py --name small_test_deleted --np 10 --maxlen 20 --minlen 10 --deleted 1 --seed 42`
-
-Example command for generating small_test_deleted:
-
-
-`python3 generate_test.py --name small_test --np 10 --maxlen 20 --minlen 10 --deleted 0 --seed 41`
-
+To clean binaries and .o files use `make clean` in root directory;
 
 ## Using API
 
-Take `/tests/func_head.c` and `/src/client/dict_interface.h` - you have API to use with driver. 
-
-Example code for operations:
+Example code for operations located in `/example/example_client.c`:
 
 ```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+
+#include "../src/client/client.h"
+
+
 int main() {
-  int fd;
-  dict_pair *got;
-  int  my_key[4] = {0, 1, 2, 3};
-  char my_value[6] = "myval\0";
-
-  fd = open(DEVICE_PATH, O_RDWR);
-
-  /* set pair in dict */
-  set_pair(fd, my_key, sizeof(my_key), MY_INT, my_value, sizeof(my_value), MY_CHAR);
-  
-  /* get value from dict */
-  got = get_value(fd, my_key, sizeof(my_key), MY_INT);
-
-  /* interpret returned value with type */
-  if (got->value_type == MY_CHAR && got->value != NULL) {
-      printf("Got value %s\n", (char *)got->value);
-  }
-
-  /* delete pair */
-  del_pair(fd, my_key, sizeof(my_key), MY_INT);
-
-  return 0;
+	int fd;
+	dict_pair *got;
+	
+	int  key[] = {0, 1, 2, 3};
+	char value[] = "myval\0";   
+	
+	fd = open(DEVICE_PATH, O_RDWR); 
+	
+	/* set pair in dict */
+	set_pair(fd, key, sizeof(key), INT, value, sizeof(value), CHAR);
+	
+	/* get value from dict */
+	got = get_value(fd, key, sizeof(key), INT);    
+	
+	/* interpret returned value with type */
+	if (got->value_type == CHAR && got->value != NULL) {
+		printf("Got value %s\n", (char *)got->value);
+	}
+	
+	/* delete pair */
+	del_pair(fd, key, sizeof(key), INT);
+	
+	free(got->value);
+	free(got);
+	
+	return 0;
 }
 
 ```
@@ -103,7 +86,7 @@ Current version does not support nested key-value pairs (thus "python-like", not
 
 ## Hash table
 
-Dictionary at its core - hash table with separate chaining. Inspired mostly by [James Aspnes Notes on Data Structures and Programming Techniques](http://www.cs.yale.edu/homes/aspnes/classes/223/notes.html). Table starts at lower than hash size (default - 64 buckets), and grows as necessary. Hash is unsigned long that's cutoff via `hash % dict_table_size`. Collisions are handled by chaining (i.e. using linked list): if two pairs falls into the same bucket, equality of full hashes are checked, and if they are not equal, than put new pair at the head of the bucket, and link previous pair as next. Implementation resides in `/src/driver/my_dict_driver.c` after `DICT CORE API` comment. 
+Dictionary at its core - hash table with separate chaining. Inspired mostly by [James Aspnes Notes on Data Structures and Programming Techniques](http://www.cs.yale.edu/homes/aspnes/classes/223/notes.html). Table starts at lower than hash size (default - 64 buckets), and grows as necessary, performing rehasing each growth. Hash is unsigned long that's cutoff via `hash % dict_table_size`. Collisions are handled by chaining (i.e. using linked list): if two pairs falls into the same bucket, equality of full hashes are checked, and if they are not equal, than put new pair at the head of the bucket, and link previous pair as next. Implementation resides in `/src/driver/dict_driver.c` after `DICT CORE API` comment. 
 
 ## IOCTL
 
@@ -119,66 +102,126 @@ There are five IOCTL calls that defined:
 
 Locking implemented with single `mutex_lock`. It locks whole IOCTL function, so only one thread can have access to it, treating whole IOCTL function as critical section. This was made due to concern with hash table achitecture - when growth of the table occurs is hard to estimate, and it either should be separate method that checks after any set operation for more granular locking. There are methods to use more granular strategies, like locking only one bucket [Resizable, Scalable, Concurrent Hash Tables via Relativistic Programming](https://www.usenix.org/legacy/event/atc11/tech/final_files/Triplett.pdf) via RCU.
 
-## Testing framework
-
-Testing framework is simple python script - it generates functions for threads and key-value pairs (support int and char arrays). It's a crude way, but most simple and fast for generating tests in bulk. There are two kind of tests - with deletion and without. First represents worst case scenario, where threads will try to delete other threads pairs and after then try to get their own (which was deleted by other thread). Due to mutex locking whole IOCTL operation, there is a need for threads to wait some time until others finished deletion. It is implemented in simplest way possible - some sleep. Other scenario is the best case, where threads are only working with their own data, no problems. 
-
 ## Test structure
 
-Test consits of static upper part `/tests/func_head.c` (with API functions implementations) and generated part: randomized key-value pairs (by type and lenght), for each thread; functions for each thread and main with multithreaded implementation via `pthread.h`. Each thread gets its own function with scenario, which consists of:
+`test_error_codes` - test for correct handling and error return with wrong input; there is no elegant way (as I aware) to test correcntess of sizew of user-provided input in generic case, so this case are not covered by this test. Assert that wrong input will result in correct error code.
 
-- Assert set_pairs worked without memory errors
-- Assert get_value got correct value via memcmp
-- Assert del_pair worked without memory errors
-- Assert get_value did not get deleted values
+`test_stress_typed` - test for correct table upsizing and general work of driver under load; using 3 threads, do:
+- Generate `NUM_OF_PAIRS` pairs of some type (for simplicity here is either `int` or `char`) of respective length
+- Set all pairs and assert that it returned 0
+- Get values for all keys, assert `memcmp` with original value is 0
+- Delete all values
+- Try to get deleted valuesm, assert that get returns `NO_PAIR` code
 
-Deleted scenario additionally:
-
-- Assert set_pairs worked without memory errors
-- Assert get_value got other's threads pairs correcltly
-- Assert del_pair worked on other's threads pairs without memory errors
-- Assert get_value of thread's own data returned no such pair result
+`test_stress_untyped` - similar to previous test, but with varying number of threads (default 300); performs same operations as `test_stress_typed`.
 
 ## Motivation of IOCTL usage
 
-IOCTL was chosen with single goal in mind - provide somewhat uniform API, without using some byte offseting like in approaches that works exclusively with write/read. IOCTL allows to handle the burden of formatting input to the IOCTL via pre-defined sturctures (on user and kernel side), that eases parsing significantly. As downside of this apporach - user need to have IOCTL command, and API becomes "private". 
+IOCTL was chosen with single goal in mind - provide somewhat uniform API, without using complicated file reading logic in approaches that works exclusively with write/read, especially for generic input. IOCTL allows to handle the burden of formatting input to the IOCTL via pre-defined sturctures (on user and kernel side), that eases parsing significantly. 
 
+Downside of using IOCTL is twofold:
 
-# Testing
-
-All testing scenarios worked correctly (i.e. all asserts were correct);
+- API becomes "private" - i.e. you need structure definitions and IOCTL command numbers to use the module, so one dependecy more
+- Limitations of IOCTL - you need to fit logic into single IOCTL call, and that becomes wasteful quickly: in this porject, for example, you need to do 3 separate IOCTL calls in order to recieve value size, type and the value itself. It can be downsided for two calls, but it will pollute logic of API and make error handling significantly harder 
 
 ## Memory leaks
 
-On the user-side API generated test functions was tested via [Valgrind](https://valgrind.org/); since tests have same structure with any size, here are results for `small_test.c` and `small_test_deleted.c`: 
+On the user-side API generated test functions was tested via [Valgrind](https://valgrind.org/); since tests have same structure with any size, here are results for `example/examle_client.c` and `tests/test_stress_untyped`: 
 
 
 ```
-==65680== HEAP SUMMARY:
-==65680==     in use at exit: 0 bytes in 0 blocks
-==65680==   total heap usage: 184 allocs, 184 frees, 10,488 bytes allocated
-==65680== 
-==65680== All heap blocks were freed -- no leaks are possible
+==41272==
+==41272== HEAP SUMMARY:
+==41272==     in use at exit: 0 bytes in 0 blocks
+==41272==   total heap usage: 5 allocs, 5 frees, 1,223 bytes allocated
+==41272==
+==41272== All heap blocks were freed -- no leaks are possible
+==41272==
+==41272== Use --track-origins=yes to see where uninitialised values come from
+==41272== For lists of detected and suppressed errors, rerun with: -s
+==41272== ERROR SUMMARY: 12 errors from 4 contexts (suppressed: 0 from 0)
 ```
 
 ```
-==69058== HEAP SUMMARY:
-==69058==     in use at exit: 0 bytes in 0 blocks
-==69058==   total heap usage: 364 allocs, 364 frees, 19,136 bytes allocated
-==69058== 
-==69058== All heap blocks were freed -- no leaks are possible
+==42380==
+==42380== HEAP SUMMARY:
+==42380==     in use at exit: 0 bytes in 0 blocks
+==42380==   total heap usage: 21,000,010 allocs, 21,000,010 frees, 1,080,001,840 bytes allocated
+==42380==
+==42380== All heap blocks were freed -- no leaks are possible
+==42380==
+==42380== Use --track-origins=yes to see where uninitialised values come from
+==42380== For lists of detected and suppressed errors, rerun with: -s
+==42380== ERROR SUMMARY: 3000000 errors from 3 contexts (suppressed: 0 from 0)
 ```
 
-Besides that, valgrind highlits one type of error for all test cases: 
+According to Valgrind, there are no lost butyes, so this is good, but it show a lot of errors with memory usage, so lets see what Valgring says with `--track-origins=yes` on testing example_client inside client to see root cause or errors:
 
-```
-Conditional jump or move depends on uninitialised value(s)
-```
-I assume that caused by usage of assert inside multi-threaded scenario, but root cause is not clear.
+<details>
+  <summary>Valgrind error log</summary>
+  
+  ```
+	==20708== Memcheck, a memory error detector
+	==20708== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+	==20708== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+	==20708== Command: ./client
+	==20708==
+	==20708== Conditional jump or move depends on uninitialised value(s)
+	==20708==    at 0x484ED79: __strlen_sse2 (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+	==20708==    by 0x48DFDB0: __vfprintf_internal (vfprintf-internal.c:1517)
+	==20708==    by 0x48C981E: printf (printf.c:33)
+	==20708==    by 0x1097DC: main (in /home/ivan/LKM-Dict-char-driver/src/client/client)
+	==20708==
+	==20708== Conditional jump or move depends on uninitialised value(s)
+	==20708==    at 0x484ED88: __strlen_sse2 (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+	==20708==    by 0x48DFDB0: __vfprintf_internal (vfprintf-internal.c:1517)
+	==20708==    by 0x48C981E: printf (printf.c:33)
+	==20708==    by 0x1097DC: main (in /home/ivan/LKM-Dict-char-driver/src/client/client)
+	==20708==
+	==20708== Conditional jump or move depends on uninitialised value(s)
+	==20708==    at 0x48F47B7: _IO_new_file_xsputn (fileops.c:1218)
+	==20708==    by 0x48F47B7: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1196)
+	==20708==    by 0x48E008B: outstring_func (vfprintf-internal.c:239)
+	==20708==    by 0x48E008B: __vfprintf_internal (vfprintf-internal.c:1517)
+	==20708==    by 0x48C981E: printf (printf.c:33)
+	==20708==    by 0x1097DC: main (in /home/ivan/LKM-Dict-char-driver/src/client/client)
+	==20708==
+	==20708== Syscall param write(buf) points to uninitialised byte(s)
+	==20708==    at 0x497DA37: write (write.c:26)
+	==20708==    by 0x48F3F6C: _IO_file_write@@GLIBC_2.2.5 (fileops.c:1180)
+	==20708==    by 0x48F5A60: new_do_write (fileops.c:448)
+	==20708==    by 0x48F5A60: _IO_new_do_write (fileops.c:425)
+	==20708==    by 0x48F5A60: _IO_do_write@@GLIBC_2.2.5 (fileops.c:422)
+	==20708==    by 0x48F4754: _IO_new_file_xsputn (fileops.c:1243)
+	==20708==    by 0x48F4754: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1196)
+	==20708==    by 0x48DF049: outstring_func (vfprintf-internal.c:239)
+	==20708==    by 0x48DF049: __vfprintf_internal (vfprintf-internal.c:1593)
+	==20708==    by 0x48C981E: printf (printf.c:33)
+	==20708==    by 0x1097DC: main (in /home/ivan/LKM-Dict-char-driver/src/client/client)
+	==20708==  Address 0x4a9419a is 10 bytes inside a block of size 1,024 alloc'd
+	==20708==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+	==20708==    by 0x48E7C23: _IO_file_doallocate (filedoalloc.c:101)
+	==20708==    by 0x48F6D5F: _IO_doallocbuf (genops.c:347)
+	==20708==    by 0x48F5FDF: _IO_file_overflow@@GLIBC_2.2.5 (fileops.c:744)
+	==20708==    by 0x48F4754: _IO_new_file_xsputn (fileops.c:1243)
+	==20708==    by 0x48F4754: _IO_file_xsputn@@GLIBC_2.2.5 (fileops.c:1196)
+	==20708==    by 0x48DE1CC: outstring_func (vfprintf-internal.c:239)
+	==20708==    by 0x48DE1CC: __vfprintf_internal (vfprintf-internal.c:1263)
+	==20708==    by 0x48C981E: printf (printf.c:33)
+	==20708==    by 0x1097DC: main (in /home/ivan/LKM-Dict-char-driver/src/client/client)
+	==20708==
+	==20708==
+	==20708== HEAP SUMMARY:
+	==20708==     in use at exit: 0 bytes in 0 blocks
+	==20708==   total heap usage: 5 allocs, 5 frees, 1,223 bytes allocated
+	==20708==
+	==20708== All heap blocks were freed -- no leaks are possible
+	==20708==
+	==20708== Use --track-origins=yes to see where uninitialised values come from
+	==20708== For lists of detected and suppressed errors, rerun with: -s
+	==20708== ERROR SUMMARY: 12 errors from 4 contexts (suppressed: 0 from 0)
+  ```  
 
-## Performance
+</details>
 
-This driver was in no way optimized for performance, but on my machine average resutls across 5 runs with `time` as follow:
-
-- Big test: ~0.7 seconds for 90k operations
-- Big test with deletion: ~8 seconds for 240k operations (including sleep)
+As far as I can tell, errors in other tests caused by similar issue - checking if `calloc` returned null and using IOCTL as syscall to write bytes somewhere (in driver write function is not defined implicitly, used only via IOCTL calls) and Valgrind does not like it. Iт large tests all error codes are similar.
