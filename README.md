@@ -4,6 +4,7 @@ In order to compile and insert your own custom LKM's, preliminary steps are requ
 
 This project was compiled and tested on `Ubuntu 22.04.01 LTS` with `5.15.0-56-generic` kernel inside VM, with 2 cores and 8gb of RAM.
 
+
 ## Compilation and usage
 
 Makefile in root directory will compile and link all tests and example with client api, as well as trigger Makefile in `src/driver/`. So order of laucnch should be:
@@ -83,6 +84,39 @@ This repository contains "python-like dictionary" implemented as LKM character d
 Current version does not support nested key-value pairs (thus "python-like", not "python"), but it could be implemented based on adding special type to data_types enum and implementing logic for handling it. 
 
 # Implementation details
+
+
+## Project structure
+
+```
+├── example
+│   └── example_client.c
+├── LICENSE
+├── Makefile
+├── README.md
+├── src
+│   ├── client
+│   │   ├── client.c
+│   │   └── client.h
+│   └── driver
+│       ├── dict_driver.c
+│       ├── dict_driver.h
+│       └── Makefile
+└── test
+    ├── test_error_codes.c
+    ├── test_stress_typed.c
+    └── test_stress_untyped.c
+
+```
+
+- `src/driver` contains code for driver part of the project (header is used for structure definition)
+
+- `src/client` contains client part of the project that need's to be linked to object that supposes to use API; header contains structure definitions and IOCTL calls macro
+
+- `examples` contains example of driver API usage via IOCTL calls
+ 
+- `tests` contains tests that described below
+
 
 ## Hash table
 
