@@ -477,7 +477,7 @@ static void __exit dict_driver_exit(void)
  */
 
 
-/** @brief Dictionary constructor; allocates initial table
+/** @brief Dictionary constructor; allocates initial hash table with INITIAL_DICTSIZE
  *  @param pd Pointer to a shared dictionary object
  *  @return dict pointer to initilized object
  */

@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
 
-#include "client.h"
+#include "../src/client/client.h"
 
 #define KEY_LEN      20
 #define VAL_LEN      20

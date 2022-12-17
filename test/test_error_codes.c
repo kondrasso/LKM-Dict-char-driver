@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <assert.h>
 
-#include "client.h"
+#include "../src/client/client.h"
 
 static char key[] = "key\0";
 static char value[] = "value\0";

@@ -1,13 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
-#include <assert.h>
-#include <pthread.h>
+
 
 #define NO_PAIR 420
 #define DEVICE_PATH "/dev/dict_device"
@@ -43,6 +35,6 @@ enum data_types {
     CHAR = 2
 };
 
-int del_pair();
-int set_pair();
-dict_pair *get_value();
+int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size_t value_size, int value_type);
+int del_pair(int fd, void *key, size_t key_size, int key_type);
+dict_pair *get_value(int fd, void *key, size_t key_size, int key_type);

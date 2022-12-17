@@ -1,13 +1,9 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
 
 #include "client.h"
+
 
 /** @brief Send IOCTL request to copy from provided data structure and conduct set in driver
  *  @param pd  Pointer to a shared dictionary object
@@ -24,11 +20,16 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
     int retval;
     dict_pair *message;
     
+    if (fd < 0) {
+        fprintf(stderr, "SET_PAIR: invalid file descriptor %d\n", fd);
+        return fd;
+    }
+    
     message = calloc(1, sizeof(dict_pair));
 
     if (message == NULL) {
-        printf("SET_PAIR: message calloc failed\n");
-        return -ENOMEM;
+        fprintf(stderr, "SET_PAIR: message calloc failed\n");
+        return ENOMEM;
     }
 
     message->key                = key;
@@ -41,7 +42,7 @@ int set_pair(int fd, void *key, size_t key_size, int key_type, void* value, size
     retval = ioctl(fd, SET_PAIR, message);
     
     if (retval != 0) {
-        printf("SET_PAIR: %s\n", strerror(retval));
+        fprintf(stderr, "SET_PAIR: %s\n", strerror(retval));
     }
     
     free(message);
@@ -59,6 +60,12 @@ dict_pair *get_value(int fd, void *key, size_t key_size, int key_type)
     int retval;
     long value_type;
     dict_pair *message;
+    
+    if (fd < 0) {
+        fprintf(stderr, "GET_VALUE: invalid file descriptor %d\n", fd);
+        return fd;
+    }
+    
 
     message = calloc(1, sizeof(dict_pair));
 
@@ -124,6 +131,11 @@ int del_pair(int fd, void *key, size_t key_size, int key_type)
     long retval;
     long value_size;
     dict_pair *message;
+    
+    if (fd < 0) {
+        fprintf(stderr, "DEL_PAIR: invalid file descriptor %d\n", fd);
+        return fd;
+    }
 
     message = calloc(1, sizeof(dict_pair));
 

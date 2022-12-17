@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "client.h"
+#include "../src/client/client.h"
 
 
 int main() {
