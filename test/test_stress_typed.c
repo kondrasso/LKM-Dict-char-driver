@@ -153,7 +153,8 @@ void *test_thread_2(void *fd)
 	return NULL;
 }
 
-int main() {
+int main() 
+{
 	int fd;
 	fd = open(DEVICE_PATH, O_RDWR);
 	pthread_t thread_0, thread_1, thread_2;
